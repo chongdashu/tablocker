@@ -1,15 +1,28 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Just Focus</title>
-    <link rel="stylesheet" href="styles.css">
-</head>
-<body>
-    <div id="root">
-        <button id="actionButton">Action</button>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tab Blocker</title>
+  </head>
+  <body class="w-64 p-4 bg-gray-100">
+    <h1 class="text-2xl font-bold mb-4">Tab Blocker</h1>
+    <div class="mb-4">
+      <input
+        type="text"
+        id="urlPattern"
+        placeholder="Enter URL pattern"
+        class="w-full p-2 border rounded"
+      />
     </div>
+    <button id="addPattern" class="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600">
+      Add Pattern
+    </button>
+    <ul id="patternList" class="mt-4 space-y-2"></ul>
+    <a href="options.html" target="_blank" class="block mt-4 text-blue-500 hover:underline"
+      >View Stats & Settings</a
+    >
+    <script src="styles.js"></script>
     <script src="popup.js"></script>
-</body>
+  </body>
 </html>

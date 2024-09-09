@@ -6,18 +6,15 @@
   "action": {
     "default_popup": "popup.html"
   },
-  "permissions": [
-    "activeTab",
-    "storage",
-    "webNavigation"
-  ],
+  "options_page": "options.html",
+  "permissions": ["activeTab", "storage", "webNavigation", "tabs"],
   "background": {
     "service_worker": "background.js"
   },
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["content.js"]
+      "js": ["content.js", "styles.js"]
     }
   ]
 }
