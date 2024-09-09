@@ -3,7 +3,7 @@ const CopyPlugin = require('copy-webpack-plugin');
 
 module.exports = {
   entry: {
-    popup: './src/popup.tsx',
+    popup: './src/popup.ts',
     background: './src/background.ts',
     content: './src/content.ts',
     styles: './src/styles.css',
@@ -39,5 +39,5 @@ module.exports = {
   optimization: {
     minimize: false,
   },
-  devtool: 'cheap-source-map', // Use a CSP-compliant source map
+  devtool: 'cheap-source-map',
 };

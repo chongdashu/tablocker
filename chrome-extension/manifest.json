@@ -1,20 +1,19 @@
 {
   "manifest_version": 3,
-  "name": "Just Focus",
+  "name": "My Chrome Extension",
   "version": "1.0",
-  "description": "A Chrome extension to block distracting sites and help you stay focused",
+  "description": "A Chrome extension using TSX",
   "action": {
     "default_popup": "popup.html"
   },
-  "options_page": "options.html",
-  "permissions": ["activeTab", "storage", "webNavigation", "tabs"],
+  "permissions": ["activeTab", "storage", "tabs"],
   "background": {
     "service_worker": "background.js"
   },
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["content.js", "styles.js"]
+      "js": ["content.js"]
     }
   ]
 }

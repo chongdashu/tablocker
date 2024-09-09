@@ -11,10 +11,10 @@ document.addEventListener('DOMContentLoaded', () => {
   function addPattern() {
     const pattern = urlPatternInput.value.trim();
     if (pattern) {
-      chrome.storage.sync.get('blockedSites', data => {
+      chrome.storage.local.get('blockedSites', (data: { blockedSites?: BlockedSite[] }) => {
         const blockedSites: BlockedSite[] = data.blockedSites || [];
         blockedSites.push({ pattern, createdAt: new Date().toISOString() });
-        chrome.storage.sync.set({ blockedSites }, () => {
+        chrome.storage.local.set({ blockedSites }, () => {
           urlPatternInput.value = '';
           renderPatternList();
         });
@@ -23,7 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function renderPatternList() {
-    chrome.storage.sync.get('blockedSites', data => {
+    chrome.storage.local.get('blockedSites', (data: { blockedSites?: BlockedSite[] }) => {
       const blockedSites: BlockedSite[] = data.blockedSites || [];
       patternList.innerHTML = '';
       blockedSites.forEach((site, index) => {
@@ -44,10 +44,10 @@ document.addEventListener('DOMContentLoaded', () => {
     removeButtons.forEach(button => {
       button.addEventListener('click', e => {
         const index = parseInt((e.target as HTMLButtonElement).getAttribute('data-index')!);
-        chrome.storage.sync.get('blockedSites', data => {
+        chrome.storage.local.get('blockedSites', (data: { blockedSites?: BlockedSite[] }) => {
           const blockedSites: BlockedSite[] = data.blockedSites || [];
           blockedSites.splice(index, 1);
-          chrome.storage.sync.set({ blockedSites }, renderPatternList);
+          chrome.storage.local.set({ blockedSites }, renderPatternList);
         });
       });
     });
