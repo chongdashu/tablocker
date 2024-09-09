@@ -48,6 +48,8 @@ import { matchesWildcard } from './utils';
                 console.error(`Failed to remove blocked tab with id ${tab.id}`);
               } else {
                 console.log(`Successfully removed blocked tab with id ${tab.id}`);
+                // Show toast notification
+                chrome.tabs.create({ url: 'toast.html?message=URL was automatically shut' });
               }
               // Update the stats to reflect a blocked tab, regardless of removal success
               updateStats('blocked');
@@ -83,6 +85,8 @@ import { matchesWildcard } from './utils';
               } else {
                 console.log('Successfully removed blocked tab');
                 updateStats('blocked');
+                // Show toast notification
+                chrome.tabs.create({ url: 'toast.html?message=URL was automatically shut' });
               }
             });
           } else {

@@ -8,6 +8,7 @@ module.exports = {
     content: './src/content.ts',
     styles: './src/styles.css',
     options: './src/options.ts',
+    toast: './src/toast.ts',
   },
   output: {
     path: path.resolve(__dirname, 'dist'),

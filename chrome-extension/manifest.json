@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "My Chrome Extension",
+  "name": "TabGuardian: The Ultimate Tab Blocker",
   "version": "1.0",
-  "description": "A Chrome extension using TSX",
+  "description": "Take control of your browsing habits with TabGuardian - the snazzy, smart tab blocker that keeps you focused and productive!",
   "action": {
     "default_popup": "popup.html"
   },
@@ -14,6 +14,12 @@
     {
       "matches": ["<all_urls>"],
       "js": ["content.js"]
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["toast.html"],
+      "matches": ["<all_urls>"]
     }
   ]
 }
