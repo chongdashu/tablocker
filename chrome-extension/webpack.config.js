@@ -7,6 +7,7 @@ module.exports = {
     background: './src/background.ts',
     content: './src/content.ts',
     styles: './src/styles.css',
+    options: './src/options.ts',
   },
   output: {
     path: path.resolve(__dirname, 'dist'),
@@ -31,8 +32,8 @@ module.exports = {
   plugins: [
     new CopyPlugin({
       patterns: [
-        { from: 'manifest.json', to: 'manifest.json' },
-        { from: 'public', to: '.' },
+        { from: path.resolve(__dirname, 'manifest.json'), to: 'manifest.json' },
+        { from: path.resolve(__dirname, 'public'), to: '.' },
       ],
     }),
   ],
