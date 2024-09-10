@@ -13,6 +13,9 @@
   "files.eol": "\n",
   "files.trimTrailingWhitespace": true,
   "files.insertFinalNewline": true,
+  "files.exclude": {
+    "chrome-extension/node_modules": true
+  },
   "search.exclude": {
     "**/node_modules": true,
     "**/dist": true
