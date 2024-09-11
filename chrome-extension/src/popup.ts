@@ -51,7 +51,7 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
       powerIcon.textContent = '⏻';
       powerIcon.classList.remove('text-green-500');
-      powerIcon.classList.add('text-gred-500');
+      powerIcon.classList.add('text-red-500');
     }
   }
 
@@ -77,10 +77,10 @@ document.addEventListener('DOMContentLoaded', () => {
       patternList.innerHTML = '';
       blockedSites.forEach((site, index) => {
         const li = document.createElement('li');
-        li.className = 'flex justify-between items-center';
+        li.className = 'flex justify-between items-center bg-white p-3 rounded-lg shadow-sm';
         li.innerHTML = `
-          <span>${site.pattern}</span>
-          <button class="text-red-500 hover:text-red-700" data-index="${index}">Remove</button>
+          <span class="text-indigo-800">${site.pattern}</span>
+          <button class="text-red-500 hover:text-red-700 transition duration-200" data-index="${index}">Remove</button>
         `;
         patternList.appendChild(li);
       });

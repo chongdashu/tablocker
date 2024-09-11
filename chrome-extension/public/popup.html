@@ -5,11 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Tab Blocker</title>
   </head>
-  <body class="w-64 p-4 bg-gray-100">
-    <div class="flex justify-between items-center mb-4">
-      <h1 class="text-2xl font-bold">Tab Blocker</h1>
-      <button id="toggleButton" class="text-2xl focus:outline-none">
-        <span id="powerIcon" class="text-gray-500">⏻</span>
+  <body class="w-80 p-6 bg-gradient-to-br from-blue-50 to-indigo-100 font-sans">
+    <div class="flex justify-between items-center mb-6">
+      <h1 class="text-2xl font-bold text-indigo-800">Tab Blocker</h1>
+      <button
+        id="toggleButton"
+        class="focus:outline-none transition-transform duration-300 ease-in-out transform hover:scale-110"
+      >
+        <span id="powerIcon" class="text-3xl"></span>
       </button>
     </div>
     <div class="mb-4">
@@ -17,16 +20,23 @@
         type="text"
         id="urlPattern"
         placeholder="Enter URL pattern"
-        class="w-full p-2 border rounded"
+        class="w-full p-3 border border-indigo-200 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-400 focus:border-transparent outline-none transition duration-200"
       />
     </div>
-    <button id="addPattern" class="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600">
+    <button
+      id="addPattern"
+      class="w-full bg-indigo-600 text-white py-3 rounded-lg shadow-md hover:bg-indigo-700 transition duration-200 ease-in-out transform hover:scale-105"
+    >
       Add Pattern
     </button>
-    <ul id="patternList" class="mt-4 space-y-2"></ul>
-    <a href="options.html" target="_blank" class="block mt-4 text-blue-500 hover:underline"
-      >View Stats & Settings</a
+    <ul id="patternList" class="mt-6 space-y-3 max-h-60 overflow-y-auto"></ul>
+    <a
+      href="options.html"
+      target="_blank"
+      class="block mt-6 text-indigo-600 hover:text-indigo-800 transition duration-200 text-center"
     >
+      View Stats & Settings
+    </a>
     <script src="styles.js"></script>
     <script src="popup.js"></script>
   </body>
