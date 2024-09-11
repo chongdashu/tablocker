@@ -8,11 +8,13 @@ document.addEventListener('DOMContentLoaded', () => {
   const patternList = document.getElementById('patternList') as HTMLUListElement;
   const toggleButton = document.getElementById('toggleButton') as HTMLButtonElement;
   const powerIcon = document.getElementById('powerIcon') as HTMLSpanElement;
+  const statusIndicator = document.getElementById('statusIndicator') as HTMLDivElement;
 
   // Load the current state
   chrome.storage.local.get('isBlocking', result => {
     const isBlocking = result.isBlocking !== false; // Default to true if not set
     updateToggleUI(isBlocking);
+    updateStatusIndicator(isBlocking);
   });
 
   toggleButton.addEventListener('click', () => {
@@ -23,6 +25,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       chrome.storage.local.set({ isBlocking: newState }, () => {
         updateToggleUI(newState);
+        updateStatusIndicator(newState);
 
         if (newState) {
           // Close all tabs that match the patterns when blocking is enabled
@@ -52,6 +55,18 @@ document.addEventListener('DOMContentLoaded', () => {
       powerIcon.textContent = '⏻';
       powerIcon.classList.remove('text-green-500');
       powerIcon.classList.add('text-red-500');
+    }
+  }
+
+  function updateStatusIndicator(isBlocking: boolean) {
+    if (isBlocking) {
+      statusIndicator.textContent = 'Blocking Active';
+      statusIndicator.classList.remove('bg-red-200', 'text-red-800');
+      statusIndicator.classList.add('bg-green-200', 'text-green-800');
+    } else {
+      statusIndicator.textContent = 'Blocking Inactive';
+      statusIndicator.classList.remove('bg-green-200', 'text-green-800');
+      statusIndicator.classList.add('bg-red-200', 'text-red-800');
     }
   }
 
