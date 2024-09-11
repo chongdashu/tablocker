@@ -35,6 +35,7 @@ module.exports = {
       patterns: [
         { from: path.resolve(__dirname, 'manifest.json'), to: 'manifest.json' },
         { from: path.resolve(__dirname, 'public'), to: '.' },
+        { from: path.resolve(__dirname, 'icons'), to: 'icons' },
       ],
     }),
   ],

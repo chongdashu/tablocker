@@ -26,6 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
       chrome.storage.local.set({ isBlocking: newState }, () => {
         updateToggleUI(newState);
         updateStatusIndicator(newState);
+        // The badge will be updated automatically due to the storage listener in background.ts
 
         if (newState) {
           // Close all tabs that match the patterns when blocking is enabled

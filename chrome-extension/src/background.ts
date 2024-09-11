@@ -16,6 +16,9 @@ import { matchesWildcard } from './utils';
   function initializeExtension() {
     console.log('Initializing extension');
 
+    // Set initial badge
+    updateBadge();
+
     // Listen for new tab creation
     chrome.tabs.onCreated.addListener(tab => {
       console.log('New tab created:', tab);
@@ -125,6 +128,7 @@ import { matchesWildcard } from './utils';
   function checkIfBlocked(url: string, blockedSites: BlockedSite[]): Promise<boolean> {
     return chrome.storage.local.get('isBlocking').then(result => {
       const isBlocking = result.isBlocking !== false; // Default to true if not set
+      updateBadge(isBlocking);
       if (!isBlocking) {
         console.log('Blocking is disabled');
         return false;
@@ -138,4 +142,25 @@ import { matchesWildcard } from './utils';
       });
     });
   }
+
+  // New function to update the badge
+  function updateBadge(isBlocking?: boolean) {
+    chrome.storage.local.get('isBlocking', result => {
+      const blocking = isBlocking !== undefined ? isBlocking : result.isBlocking !== false;
+      if (blocking) {
+        chrome.action.setBadgeText({ text: '✓' });
+        chrome.action.setBadgeBackgroundColor({ color: '#4CAF50' }); // Green
+      } else {
+        chrome.action.setBadgeText({ text: '✗' });
+        chrome.action.setBadgeBackgroundColor({ color: '#F44336' }); // Red
+      }
+    });
+  }
+
+  // Listen for changes in storage
+  chrome.storage.onChanged.addListener((changes, namespace) => {
+    if (namespace === 'local' && changes.isBlocking) {
+      updateBadge(changes.isBlocking.newValue);
+    }
+  });
 })();
