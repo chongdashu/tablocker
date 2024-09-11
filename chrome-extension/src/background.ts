@@ -30,33 +30,27 @@ import { matchesWildcard } from './utils';
         console.log('Tab URL:', url);
 
         if (url && blockedSites.length > 0) {
-          console.log('Checking if URL is blocked');
-          // Check if the URL matches any of the blocked site patterns
-          const isBlocked = blockedSites.some((site: BlockedSite) => {
-            const matches = matchesWildcard(url, site.pattern);
-            console.log(`Checking pattern ${site.pattern}: ${matches ? 'Matched' : 'Not matched'}`);
-            return matches;
+          checkIfBlocked(url, blockedSites).then((isBlocked: boolean) => {
+            console.log('Is URL blocked?', isBlocked);
+
+            if (isBlocked) {
+              console.log('Attempting to remove blocked tab');
+              // If the site is blocked, attempt to remove the tab
+              chrome.tabs.remove(tab.id!, (wasRemoved: boolean) => {
+                if (!wasRemoved) {
+                  console.error(`Failed to remove blocked tab with id ${tab.id}`);
+                } else {
+                  console.log(`Successfully removed blocked tab with id ${tab.id}`);
+                  // Show toast notification
+                  chrome.tabs.create({ url: 'toast.html?message=URL was automatically shut' });
+                }
+                // Update the stats to reflect a blocked tab, regardless of removal success
+                updateStats('blocked');
+              });
+            } else {
+              console.log('URL is not blocked, allowing tab to open');
+            }
           });
-
-          console.log('Is URL blocked?', isBlocked);
-
-          if (isBlocked) {
-            console.log('Attempting to remove blocked tab');
-            // If the site is blocked, attempt to remove the tab
-            chrome.tabs.remove(tab.id!, (wasRemoved: boolean) => {
-              if (!wasRemoved) {
-                console.error(`Failed to remove blocked tab with id ${tab.id}`);
-              } else {
-                console.log(`Successfully removed blocked tab with id ${tab.id}`);
-                // Show toast notification
-                chrome.tabs.create({ url: 'toast.html?message=URL was automatically shut' });
-              }
-              // Update the stats to reflect a blocked tab, regardless of removal success
-              updateStats('blocked');
-            });
-          } else {
-            console.log('URL is not blocked, allowing tab to open');
-          }
         } else {
           console.log('No URL or no blocked sites, skipping check');
         }
@@ -69,29 +63,40 @@ import { matchesWildcard } from './utils';
       // If the tab is loading and has a URL
       if (changeInfo.status === 'loading' && tab.url) {
         console.log('Tab is loading, checking if URL is blocked');
-        // Retrieve the list of blocked sites from storage
-        chrome.storage.local.get('blockedSites', result => {
+        // Retrieve the list of blocked sites and blocking state from storage
+        chrome.storage.local.get(['blockedSites', 'isBlocking'], result => {
           const blockedSites = result.blockedSites || [];
+          const isBlocking = result.isBlocking !== false; // Default to true if not set
           console.log('Retrieved blocked sites:', blockedSites);
-          // Check if the URL matches any of the blocked site patterns
-          const isBlocked = blockedSites.some((site: BlockedSite) =>
-            matchesWildcard(tab.url!, site.pattern)
-          );
-          if (isBlocked) {
-            console.log('URL is blocked, removing tab');
-            chrome.tabs.remove(tabId, () => {
-              if (chrome.runtime.lastError) {
-                console.error('Failed to remove blocked tab:', chrome.runtime.lastError);
-              } else {
-                console.log('Successfully removed blocked tab');
-                updateStats('blocked');
-                // Show toast notification
-                chrome.tabs.create({ url: 'toast.html?message=URL was automatically shut' });
+          console.log('Is blocking enabled:', isBlocking);
+
+          if (isBlocking) {
+            // Check if the URL matches any of the blocked site patterns
+            const isBlocked = blockedSites.some((site: BlockedSite) =>
+              matchesWildcard(tab.url!, site.pattern)
+            );
+            if (isBlocked) {
+              console.log('URL is blocked, removing tab');
+              chrome.tabs.remove(tabId, () => {
+                if (chrome.runtime.lastError) {
+                  console.error('Failed to remove blocked tab:', chrome.runtime.lastError);
+                } else {
+                  console.log('Successfully removed blocked tab');
+                  updateStats('blocked');
+                  // Show toast notification
+                  chrome.tabs.create({ url: 'toast.html?message=URL was automatically shut' });
+                }
+              });
+            } else {
+              console.log('URL is not blocked');
+              // If the tab has finished loading and is not blocked
+              if (changeInfo.status === 'complete') {
+                console.log('Tab finished loading, updating stats');
+                updateStats('allowed');
               }
-            });
+            }
           } else {
-            console.log('URL is not blocked');
-            // If the tab has finished loading and is not blocked
+            console.log('Blocking is disabled, allowing all URLs');
             if (changeInfo.status === 'complete') {
               console.log('Tab finished loading, updating stats');
               updateStats('allowed');
@@ -114,6 +119,23 @@ import { matchesWildcard } from './utils';
       console.log('Updated stats:', stats);
       // Save the updated stats back to storage
       chrome.storage.local.set({ tabStats: stats });
+    });
+  }
+
+  function checkIfBlocked(url: string, blockedSites: BlockedSite[]): Promise<boolean> {
+    return chrome.storage.local.get('isBlocking').then(result => {
+      const isBlocking = result.isBlocking !== false; // Default to true if not set
+      if (!isBlocking) {
+        console.log('Blocking is disabled');
+        return false;
+      }
+
+      console.log('Checking if URL is blocked');
+      return blockedSites.some((site: BlockedSite) => {
+        const matches = matchesWildcard(url, site.pattern);
+        console.log(`Checking pattern ${site.pattern}: ${matches ? 'Matched' : 'Not matched'}`);
+        return matches;
+      });
     });
   }
 })();
