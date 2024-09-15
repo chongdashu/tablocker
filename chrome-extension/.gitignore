@@ -39,6 +39,9 @@ yarn-error.log*
 *.js
 *.js.map
 
+!postcss.config.js
+!tailwind.config.js
+
 # Exception for specific JS files you want to keep
 !webpack.config.js
 
