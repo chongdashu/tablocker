@@ -25,7 +25,7 @@
           <h2 class="text-2xl font-semibold mb-4 text-indigo-700">Total Tabs Blocked</h2>
           <p class="text-4xl font-bold text-indigo-600" id="blockedCount"></p>
         </div>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 relative">
           <div class="bg-white p-6 rounded-lg shadow-lg">
             <h2 class="text-2xl font-semibold mb-4 text-indigo-700">Blocked Sites Over Time</h2>
             <div class="flex items-center space-x-4 mb-4">
@@ -41,6 +41,12 @@
           <div class="bg-white p-6 rounded-lg shadow-lg">
             <h2 class="text-2xl font-semibold mb-4 text-indigo-700">Blocked Patterns</h2>
             <canvas id="patternsChart"></canvas>
+          </div>
+          <div id="paywallOverlay" class="absolute inset-0 bg-gray-200 bg-opacity-75 flex items-center justify-center">
+            <div class="text-center">
+              <span class="text-6xl">🔒</span>
+              <p class="text-xl font-semibold mt-4">Go Pro to Unlock Full Analytics</p>
+            </div>
           </div>
         </div>
       </div>

@@ -50,14 +50,17 @@ function updateCharts(dailyStats: { [date: string]: DailyStats }, blockedPattern
     filteredDates = dates.slice(-30);
   }
 
-  // Update line chart
+  // Mock data for paywall demo
+  const mockDates = ['2023-05-01', '2023-05-02', '2023-05-03', '2023-05-04', '2023-05-05'];
+  const mockBlockedCounts = [5, 8, 3, 12, 7];
+
   const lineChartConfig: ChartConfiguration<'line'> = {
     type: 'line',
     data: {
-      labels: filteredDates,
+      labels: mockDates,
       datasets: [{
         label: 'Blocked Sites',
-        data: filteredDates.map(date => dailyStats[date].blocked),
+        data: mockBlockedCounts,
         borderColor: 'rgba(99, 102, 241, 1)', // Indigo color
         backgroundColor: 'rgba(99, 102, 241, 0.2)',
         tension: 0.1,
@@ -98,23 +101,20 @@ function updateCharts(dailyStats: { [date: string]: DailyStats }, blockedPattern
   statsChart = new Chart(statsChartCanvas, lineChartConfig);
 
   // Update pie chart
+  const mockPatterns = ['example.com', 'social.net', 'distraction.org', 'timewaste.io'];
+  const mockCounts = [15, 8, 12, 5];
+
   const pieChartConfig: ChartConfiguration<'pie'> = {
     type: 'pie',
     data: {
-      labels: Object.keys(blockedPatterns),
+      labels: mockPatterns,
       datasets: [{
-        data: Object.values(blockedPatterns).map(pattern => pattern.count),
+        data: mockCounts,
         backgroundColor: [
           'rgba(255, 99, 132, 0.8)',   // Red
           'rgba(54, 162, 235, 0.8)',   // Blue
           'rgba(255, 206, 86, 0.8)',   // Yellow
           'rgba(75, 192, 192, 0.8)',   // Teal
-          'rgba(153, 102, 255, 0.8)',  // Purple
-          'rgba(255, 159, 64, 0.8)',   // Orange
-          'rgba(0, 204, 150, 0.8)',    // Green
-          'rgba(255, 99, 255, 0.8)',   // Pink
-          'rgba(128, 128, 128, 0.8)',  // Gray
-          'rgba(0, 128, 128, 0.8)',    // Dark Teal
         ],
       }]
     },
