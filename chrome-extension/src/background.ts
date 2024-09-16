@@ -136,22 +136,36 @@ import { matchesWildcard } from './utils';
     });
   }
 
-  // New function to update the badge
+  // Modify the updateBadge function
   function updateBadge(isBlocking?: boolean) {
-    chrome.storage.local.get('isBlocking', result => {
-      const blocking = isBlocking !== undefined ? isBlocking : result.isBlocking !== false;
-      if (blocking) {
-        chrome.action.setBadgeText({ text: '✓' });
-        chrome.action.setBadgeBackgroundColor({ color: '#4CAF50' }); // Green
+    chrome.storage.sync.get('settings', (settingsData) => {
+      const settings = settingsData.settings || { enableBadges: true };
+
+      if (settings.enableBadges) {
+        chrome.storage.local.get('isBlocking', result => {
+          const blocking = isBlocking !== undefined ? isBlocking : result.isBlocking !== false;
+          if (blocking) {
+            chrome.action.setBadgeText({ text: '✓' });
+            chrome.action.setBadgeBackgroundColor({ color: '#4CAF50' }); // Green
+          } else {
+            chrome.action.setBadgeText({ text: '✗' });
+            chrome.action.setBadgeBackgroundColor({ color: '#F44336' }); // Red
+          }
+        });
       } else {
-        chrome.action.setBadgeText({ text: '✗' });
-        chrome.action.setBadgeBackgroundColor({ color: '#F44336' }); // Red
+        chrome.action.setBadgeText({ text: '' });
       }
     });
   }
 
-  // Listen for changes in storage
+  // Add a listener for settings changes
   chrome.storage.onChanged.addListener((changes, namespace) => {
+    if (namespace === 'sync' && changes.settings) {
+      const newSettings = changes.settings.newValue;
+      if (newSettings.enableBadges !== undefined) {
+        updateBadge(); // This will update the badge based on the new setting
+      }
+    }
     if (namespace === 'local' && changes.isBlocking) {
       updateBadge(changes.isBlocking.newValue);
     }

@@ -8,5 +8,5 @@ export interface TabStats {
 }
 
 export interface Settings {
-  enableNotifications: boolean;
+  enableBadges: boolean;
 }

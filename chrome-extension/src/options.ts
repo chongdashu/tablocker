@@ -1,10 +1,9 @@
 import { TabStats } from './types';
 
 const blockedCountElement = document.getElementById('blockedCount') as HTMLSpanElement;
-// Remove the allowedCountElement
 
-const enableNotificationsCheckbox = document.getElementById(
-  'enableNotifications'
+const enableBadgesCheckbox = document.getElementById(
+  'enableBadges'
 ) as HTMLInputElement;
 
 function updateStats() {
@@ -16,18 +15,17 @@ function updateStats() {
 
 function updateSettings() {
   chrome.storage.sync.get('settings', data => {
-    const settings = data.settings || { enableNotifications: false };
-    enableNotificationsCheckbox.checked = settings.enableNotifications;
+    const settings = data.settings || { enableBadges: true };
+    enableBadgesCheckbox.checked = settings.enableBadges;
   });
 }
 
-enableNotificationsCheckbox.addEventListener('change', () => {
+enableBadgesCheckbox.addEventListener('change', () => {
   chrome.storage.sync.set({
-    settings: { enableNotifications: enableNotificationsCheckbox.checked },
+    settings: { enableBadges: enableBadgesCheckbox.checked },
   });
 });
 
-// Add this new function to listen for storage changes
 function listenForStorageChanges() {
   chrome.storage.onChanged.addListener((changes, namespace) => {
     if (namespace === 'local' && changes.tabStats) {
