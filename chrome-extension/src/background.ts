@@ -1,4 +1,4 @@
-import type { BlockedSite, TabStats } from './types';
+import type { BlockedSite, TabStats, DailyStats, BlockedPattern, BlockedDetail } from './types';
 import { matchesWildcard } from './utils';
 
 (async function () {
@@ -33,9 +33,7 @@ import { matchesWildcard } from './utils';
         console.log('Tab URL:', url);
 
         if (url && blockedSites.length > 0) {
-          checkIfBlocked(url, blockedSites).then((isBlocked: boolean) => {
-            console.log('Is URL blocked?', isBlocked);
-
+          checkIfBlocked(url, blockedSites).then(({ isBlocked, pattern }) => {
             if (isBlocked) {
               console.log('Attempting to remove blocked tab');
               // If the site is blocked, attempt to remove the tab
@@ -48,7 +46,7 @@ import { matchesWildcard } from './utils';
                   chrome.tabs.create({ url: 'toast.html?message=URL was automatically shut' });
                 }
                 // Update the stats to reflect a blocked tab, regardless of removal success
-                updateStats('blocked');
+                updateStats('blocked', pattern, url);
               });
             } else {
               console.log('URL is not blocked, allowing tab to open');
@@ -85,7 +83,7 @@ import { matchesWildcard } from './utils';
                   console.error('Failed to remove blocked tab:', chrome.runtime.lastError);
                 } else {
                   console.log('Successfully removed blocked tab');
-                  updateStats('blocked');
+                  updateStats('blocked', tab.url!, tab.url!);
                   // Show toast notification
                   chrome.tabs.create({ url: 'toast.html?message=URL was automatically shut' });
                 }
@@ -104,35 +102,59 @@ import { matchesWildcard } from './utils';
   }
 
   // Function to update tab statistics
-  function updateStats(type: 'blocked') {
-    console.log(`Updating stats: ${type}`);
-    // Retrieve current tab stats from storage
-    chrome.storage.local.get('tabStats', result => {
-      // Initialize stats object if it doesn't exist
-      const stats: TabStats = result.tabStats || { blocked: 0 };
-      // Increment the blocked counter
-      stats.blocked++;
-      console.log('Updated stats:', stats);
-      // Save the updated stats back to storage
-      chrome.storage.local.set({ tabStats: stats });
+  function updateStats(type: 'blocked', pattern: string, url: string) {
+    console.log(`Updating stats: ${type}, pattern: ${pattern}, url: ${url}`);
+    const today = new Date().toISOString().split('T')[0];
+    const timestamp = new Date().toISOString();
+
+    chrome.storage.local.get(['tabStats', 'dailyStats', 'blockedPatterns', 'blockedDetails'], result => {
+      const tabStats: TabStats = result.tabStats || { blocked: 0 };
+      const dailyStats: { [date: string]: DailyStats } = result.dailyStats || {};
+      const blockedPatterns: BlockedPattern = result.blockedPatterns || {};
+      const blockedDetails: BlockedDetail[] = result.blockedDetails || [];
+
+      // Update total blocked count
+      tabStats.blocked++;
+
+      // Update daily stats
+      if (!dailyStats[today]) {
+        dailyStats[today] = { blocked: 0 };
+      }
+      dailyStats[today].blocked++;
+
+      // Update blocked patterns
+      if (!blockedPatterns[pattern]) {
+        blockedPatterns[pattern] = { count: 0, lastBlocked: '' };
+      }
+      blockedPatterns[pattern].count++;
+      blockedPatterns[pattern].lastBlocked = timestamp;
+
+      // Update blocked details
+      blockedDetails.push({ url, pattern, timestamp });
+
+      console.log('Updated stats:', { tabStats, dailyStats, blockedPatterns, blockedDetails });
+      chrome.storage.local.set({ tabStats, dailyStats, blockedPatterns, blockedDetails });
     });
   }
 
-  function checkIfBlocked(url: string, blockedSites: BlockedSite[]): Promise<boolean> {
+  function checkIfBlocked(url: string, blockedSites: BlockedSite[]): Promise<{ isBlocked: boolean; pattern: string }> {
     return chrome.storage.local.get('isBlocking').then(result => {
-      const isBlocking = result.isBlocking !== false; // Default to true if not set
+      const isBlocking = result.isBlocking !== false;
       updateBadge(isBlocking);
       if (!isBlocking) {
         console.log('Blocking is disabled');
-        return false;
+        return { isBlocked: false, pattern: '' };
       }
 
       console.log('Checking if URL is blocked');
-      return blockedSites.some((site: BlockedSite) => {
+      for (const site of blockedSites) {
         const matches = matchesWildcard(url, site.pattern);
         console.log(`Checking pattern ${site.pattern}: ${matches ? 'Matched' : 'Not matched'}`);
-        return matches;
-      });
+        if (matches) {
+          return { isBlocked: true, pattern: site.pattern };
+        }
+      }
+      return { isBlocked: false, pattern: '' };
     });
   }
 

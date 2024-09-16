@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Un-Tab - Stats & Settings</title>
     <script src="styles.js"></script>
+    <!-- Remove the CDN script -->
   </head>
   <body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen font-sans">
     <div class="container mx-auto p-8">
@@ -13,8 +14,25 @@
         <div class="bg-white p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300">
           <h2 class="text-2xl font-semibold mb-4 text-indigo-700">Stats</h2>
           <div class="space-y-4">
-            <p class="text-lg">Tabs blocked: <span id="blockedCount" class="font-bold text-indigo-600"></span></p>
+            <p class="text-lg">Total tabs blocked: <span id="blockedCount" class="font-bold text-indigo-600"></span></p>
+            <div>
+              <label for="timeRange" class="block text-sm font-medium text-gray-700">Time Range:</label>
+              <select id="timeRange" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                <option value="7days">Last 7 Days</option>
+                <option value="30days">Last 30 Days</option>
+                <option value="allTime">All Time</option>
+              </select>
+            </div>
+            <canvas id="statsChart"></canvas>
           </div>
+        </div>
+        <div class="bg-white p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300">
+          <h2 class="text-2xl font-semibold mb-4 text-indigo-700">Blocked Patterns</h2>
+          <ul id="patternList" class="space-y-2"></ul>
+        </div>
+        <div class="bg-white p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300">
+          <h2 class="text-2xl font-semibold mb-4 text-indigo-700">Blocked Details</h2>
+          <ul id="blockedDetails" class="space-y-2"></ul>
         </div>
         <div class="bg-white p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300">
           <h2 class="text-2xl font-semibold mb-4 text-indigo-700">Settings</h2>
