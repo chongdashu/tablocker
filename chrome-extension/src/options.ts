@@ -7,7 +7,7 @@ const enableNotificationsCheckbox = document.getElementById(
 ) as HTMLInputElement;
 
 function updateStats() {
-  chrome.storage.sync.get('tabStats', data => {
+  chrome.storage.local.get('tabStats', data => {
     const stats: TabStats = data.tabStats || { blocked: 0, allowed: 0 };
     blockedCountElement.textContent = stats.blocked.toString();
     allowedCountElement.textContent = stats.allowed.toString();
@@ -27,5 +27,15 @@ enableNotificationsCheckbox.addEventListener('change', () => {
   });
 });
 
+// Add this new function to listen for storage changes
+function listenForStorageChanges() {
+  chrome.storage.onChanged.addListener((changes, namespace) => {
+    if (namespace === 'local' && changes.tabStats) {
+      updateStats();
+    }
+  });
+}
+
 updateStats();
 updateSettings();
+listenForStorageChanges(); // Add this line to start listening for changes
