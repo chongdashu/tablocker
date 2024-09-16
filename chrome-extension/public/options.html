@@ -32,7 +32,10 @@
         </div>
         <div class="bg-white p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300">
           <h2 class="text-2xl font-semibold mb-4 text-indigo-700">Blocked Details</h2>
-          <ul id="blockedDetails" class="space-y-2"></ul>
+          <ul id="blockedDetails" class="space-y-2">
+            <!-- Add a loading indicator -->
+            <li id="blockedDetailsLoading" class="text-gray-500">Loading blocked details...</li>
+          </ul>
         </div>
         <div class="bg-white p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300">
           <h2 class="text-2xl font-semibold mb-4 text-indigo-700">Settings</h2>
@@ -40,7 +43,7 @@
             <div class="flex items-center space-x-3">
               <label class="relative inline-flex items-center cursor-pointer">
                 <input type="checkbox" id="enableBadges" class="sr-only peer">
-                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
                 <span class="ml-3 text-lg font-medium text-gray-700">Enable badges</span>
               </label>
             </div>

@@ -131,8 +131,7 @@ import { matchesWildcard } from './utils';
 
       // Update blocked details
       blockedDetails.push({ url, pattern, timestamp });
-
-      console.log('Updated stats:', { tabStats, dailyStats, blockedPatterns, blockedDetails });
+      console.log('Saving blocked details:', blockedDetails);
       chrome.storage.local.set({ tabStats, dailyStats, blockedPatterns, blockedDetails });
     });
   }

@@ -16,11 +16,11 @@ function updateStats() {
     const dailyStats: { [date: string]: DailyStats } = data.dailyStats || {};
     const blockedPatterns: BlockedPattern = data.blockedPatterns || {};
     const blockedDetails: BlockedDetail[] = data.blockedDetails || [];
-
+    console.log('Retrieved blocked details from storage:', blockedDetails);
+    updateBlockedDetails(blockedDetails);
     blockedCountElement.textContent = tabStats.blocked.toString();
     updateChart(dailyStats);
     updatePatternList(blockedPatterns);
-    updateBlockedDetails(blockedDetails);
   });
 }
 
@@ -75,15 +75,24 @@ function updatePatternList(blockedPatterns: BlockedPattern) {
 }
 
 function updateBlockedDetails(blockedDetails: BlockedDetail[]) {
+  console.log('Updating blocked details:', blockedDetails);
   blockedDetailsElement.innerHTML = '';
-  blockedDetails
-    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-    .slice(0, 50) // Limit to the most recent 50 entries
-    .forEach(detail => {
-      const li = document.createElement('li');
-      li.textContent = `${new Date(detail.timestamp).toLocaleString()}: ${detail.url} (Pattern: ${detail.pattern})`;
-      blockedDetailsElement.appendChild(li);
-    });
+  if (blockedDetails.length === 0) {
+    const li = document.createElement('li');
+    li.textContent = 'No blocked details available.';
+    li.className = 'text-gray-500';
+    blockedDetailsElement.appendChild(li);
+  } else {
+    blockedDetails
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+      .slice(0, 50) // Limit to the most recent 50 entries
+      .forEach(detail => {
+        const li = document.createElement('li');
+        li.textContent = `${new Date(detail.timestamp).toLocaleString()}: ${detail.url} (Pattern: ${detail.pattern})`;
+        blockedDetailsElement.appendChild(li);
+      });
+  }
+  console.log('Blocked details updated in DOM');
 }
 
 // Add this new function to listen for storage changes
