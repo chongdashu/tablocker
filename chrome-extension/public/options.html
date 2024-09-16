@@ -5,47 +5,68 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Un-Tab - Stats & Settings</title>
     <script src="styles.js"></script>
-    <!-- Remove the CDN script -->
   </head>
   <body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen font-sans">
     <div class="container mx-auto p-8">
       <h1 class="text-4xl font-bold mb-8 text-indigo-800 text-center">Un-Tab - Stats & Settings</h1>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <div class="bg-white p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300">
-          <h2 class="text-2xl font-semibold mb-4 text-indigo-700">Stats</h2>
-          <div class="space-y-4">
-            <p class="text-lg">Total tabs blocked: <span id="blockedCount" class="font-bold text-indigo-600"></span></p>
-            <div>
-              <label for="timeRange" class="block text-sm font-medium text-gray-700">Time Range:</label>
-              <select id="timeRange" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+
+      <!-- Tab Navigation -->
+      <div class="mb-8">
+        <nav class="flex space-x-4" aria-label="Tabs">
+          <button class="tab-button px-3 py-2 font-medium text-sm rounded-md" data-tab="analytics">Analytics</button>
+          <button class="tab-button px-3 py-2 font-medium text-sm rounded-md" data-tab="settings">Settings</button>
+          <button class="tab-button px-3 py-2 font-medium text-sm rounded-md" data-tab="log">Log</button>
+        </nav>
+      </div>
+
+      <!-- Analytics Tab -->
+      <div id="analytics-tab" class="tab-content">
+        <div class="bg-white p-6 rounded-lg shadow-lg mb-8">
+          <h2 class="text-2xl font-semibold mb-4 text-indigo-700">Total Tabs Blocked</h2>
+          <p class="text-4xl font-bold text-indigo-600" id="blockedCount"></p>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div class="bg-white p-6 rounded-lg shadow-lg">
+            <h2 class="text-2xl font-semibold mb-4 text-indigo-700">Blocked Sites Over Time</h2>
+            <div class="flex items-center space-x-4 mb-4">
+              <label for="timeRange" class="text-sm font-medium text-gray-700 whitespace-nowrap">Time Range:</label>
+              <select id="timeRange" class="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md bg-white shadow-sm">
                 <option value="7days">Last 7 Days</option>
                 <option value="30days">Last 30 Days</option>
                 <option value="allTime">All Time</option>
               </select>
             </div>
-            <canvas id="statsChart"></canvas>
+            <canvas id="statsChart" class="mt-4"></canvas>
+          </div>
+          <div class="bg-white p-6 rounded-lg shadow-lg">
+            <h2 class="text-2xl font-semibold mb-4 text-indigo-700">Blocked Patterns</h2>
+            <canvas id="patternsChart"></canvas>
           </div>
         </div>
-        <div class="bg-white p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300">
-          <h2 class="text-2xl font-semibold mb-4 text-indigo-700">Blocked Patterns</h2>
-          <ul id="patternList" class="space-y-2"></ul>
-        </div>
-        <div class="bg-white p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300">
-          <h2 class="text-2xl font-semibold mb-4 text-indigo-700">Blocked Details</h2>
-          <ul id="blockedDetails" class="space-y-2"></ul>
-        </div>
-        <div class="bg-white p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300">
+      </div>
+
+      <!-- Settings Tab -->
+      <div id="settings-tab" class="tab-content hidden">
+        <div class="bg-white p-6 rounded-lg shadow-lg">
           <h2 class="text-2xl font-semibold mb-4 text-indigo-700">Settings</h2>
           <div class="space-y-4">
             <div class="flex items-center space-x-3">
               <label class="relative inline-flex items-center cursor-pointer">
                 <input type="checkbox" id="enableBadges" class="sr-only peer">
-                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
                 <span class="ml-3 text-lg font-medium text-gray-700">Enable badges</span>
               </label>
             </div>
             <p class="text-sm text-gray-600 mt-2">Display a badge on the extension icon to indicate if blocking is active</p>
           </div>
+        </div>
+      </div>
+
+      <!-- Log Tab -->
+      <div id="log-tab" class="tab-content hidden">
+        <div class="bg-white p-6 rounded-lg shadow-lg">
+          <h2 class="text-2xl font-semibold mb-4 text-indigo-700">Blocked Details</h2>
+          <ul id="blockedDetails" class="space-y-2"></ul>
         </div>
       </div>
     </div>

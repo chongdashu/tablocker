@@ -1,14 +1,29 @@
 import { TabStats, DailyStats, BlockedPattern, BlockedDetail } from './types';
-import Chart from 'chart.js/auto';
+import { Chart, ChartConfiguration, ChartType } from 'chart.js/auto';
 
 const blockedCountElement = document.getElementById('blockedCount') as HTMLSpanElement;
 const enableBadgesCheckbox = document.getElementById('enableBadges') as HTMLInputElement;
 const statsChartCanvas = document.getElementById('statsChart') as HTMLCanvasElement;
+const patternsChartCanvas = document.getElementById('patternsChart') as HTMLCanvasElement;
 const timeRangeSelect = document.getElementById('timeRange') as HTMLSelectElement;
-const patternListElement = document.getElementById('patternList') as HTMLUListElement;
 const blockedDetailsElement = document.getElementById('blockedDetails') as HTMLUListElement;
 
-let statsChart: Chart;
+let statsChart: Chart<'line'>;
+let patternsChart: Chart<'pie'>;
+
+// Tab switching functionality
+const tabButtons = document.querySelectorAll('.tab-button');
+const tabContents = document.querySelectorAll('.tab-content');
+
+tabButtons.forEach(button => {
+  button.addEventListener('click', () => {
+    const tabName = button.getAttribute('data-tab');
+    tabButtons.forEach(btn => btn.classList.remove('bg-indigo-100', 'text-indigo-700'));
+    tabContents.forEach(content => content.classList.add('hidden'));
+    button.classList.add('bg-indigo-100', 'text-indigo-700');
+    document.getElementById(`${tabName}-tab`)?.classList.remove('hidden');
+  });
+});
 
 function updateStats() {
   chrome.storage.local.get(['tabStats', 'dailyStats', 'blockedPatterns', 'blockedDetails'], data => {
@@ -16,15 +31,15 @@ function updateStats() {
     const dailyStats: { [date: string]: DailyStats } = data.dailyStats || {};
     const blockedPatterns: BlockedPattern = data.blockedPatterns || {};
     const blockedDetails: BlockedDetail[] = data.blockedDetails || [];
+    console.log('Retrieved blocked details from storage:', blockedDetails);
 
     blockedCountElement.textContent = tabStats.blocked.toString();
-    updateChart(dailyStats);
-    updatePatternList(blockedPatterns);
+    updateCharts(dailyStats, blockedPatterns);
     updateBlockedDetails(blockedDetails);
   });
 }
 
-function updateChart(dailyStats: { [date: string]: DailyStats }) {
+function updateCharts(dailyStats: { [date: string]: DailyStats }, blockedPatterns: BlockedPattern) {
   const timeRange = timeRangeSelect.value;
   const dates = Object.keys(dailyStats).sort();
   let filteredDates = dates;
@@ -35,58 +50,123 @@ function updateChart(dailyStats: { [date: string]: DailyStats }) {
     filteredDates = dates.slice(-30);
   }
 
-  const chartData = {
-    labels: filteredDates,
-    datasets: [{
-      label: 'Blocked Sites',
-      data: filteredDates.map(date => dailyStats[date].blocked),
-      backgroundColor: 'rgba(75, 192, 192, 0.2)',
-      borderColor: 'rgba(75, 192, 192, 1)',
-      borderWidth: 1
-    }]
+  // Update line chart
+  const lineChartConfig: ChartConfiguration<'line'> = {
+    type: 'line',
+    data: {
+      labels: filteredDates,
+      datasets: [{
+        label: 'Blocked Sites',
+        data: filteredDates.map(date => dailyStats[date].blocked),
+        borderColor: 'rgba(99, 102, 241, 1)', // Indigo color
+        backgroundColor: 'rgba(99, 102, 241, 0.2)',
+        tension: 0.1,
+        fill: true,
+      }]
+    },
+    options: {
+      responsive: true,
+      scales: {
+        x: {
+          grid: {
+            display: false,
+          },
+        },
+        y: {
+          beginAtZero: true,
+          grid: {
+            color: 'rgba(0, 0, 0, 0.1)',
+          },
+        }
+      },
+      plugins: {
+        legend: {
+          display: false,
+        },
+        tooltip: {
+          mode: 'index',
+          intersect: false,
+        },
+      },
+    }
   };
 
   if (statsChart) {
     statsChart.destroy();
   }
 
-  statsChart = new Chart(statsChartCanvas, {
-    type: 'bar',
-    data: chartData,
+  statsChart = new Chart(statsChartCanvas, lineChartConfig);
+
+  // Update pie chart
+  const pieChartConfig: ChartConfiguration<'pie'> = {
+    type: 'pie',
+    data: {
+      labels: Object.keys(blockedPatterns),
+      datasets: [{
+        data: Object.values(blockedPatterns).map(pattern => pattern.count),
+        backgroundColor: [
+          'rgba(255, 99, 132, 0.8)',   // Red
+          'rgba(54, 162, 235, 0.8)',   // Blue
+          'rgba(255, 206, 86, 0.8)',   // Yellow
+          'rgba(75, 192, 192, 0.8)',   // Teal
+          'rgba(153, 102, 255, 0.8)',  // Purple
+          'rgba(255, 159, 64, 0.8)',   // Orange
+          'rgba(0, 204, 150, 0.8)',    // Green
+          'rgba(255, 99, 255, 0.8)',   // Pink
+          'rgba(128, 128, 128, 0.8)',  // Gray
+          'rgba(0, 128, 128, 0.8)',    // Dark Teal
+        ],
+      }]
+    },
     options: {
-      scales: {
-        y: {
-          beginAtZero: true
+      responsive: true,
+      plugins: {
+        legend: {
+          position: 'right',
+        },
+        tooltip: {
+          callbacks: {
+            label: (context) => {
+              const label = context.label || '';
+              const value = context.parsed || 0;
+              const total = context.dataset.data.reduce((acc: number, data: number) => acc + data, 0);
+              const percentage = ((value / total) * 100).toFixed(1);
+              return `${label}: ${value} (${percentage}%)`;
+            }
+          }
         }
       }
     }
-  });
-}
+  };
 
-function updatePatternList(blockedPatterns: BlockedPattern) {
-  patternListElement.innerHTML = '';
-  Object.entries(blockedPatterns)
-    .sort((a, b) => b[1].count - a[1].count)
-    .forEach(([pattern, stats]) => {
-      const li = document.createElement('li');
-      li.textContent = `${pattern}: ${stats.count} (Last blocked: ${new Date(stats.lastBlocked).toLocaleString()})`;
-      patternListElement.appendChild(li);
-    });
+  if (patternsChart) {
+    patternsChart.destroy();
+  }
+
+  patternsChart = new Chart(patternsChartCanvas, pieChartConfig);
 }
 
 function updateBlockedDetails(blockedDetails: BlockedDetail[]) {
+  console.log('Updating blocked details:', blockedDetails);
   blockedDetailsElement.innerHTML = '';
-  blockedDetails
-    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-    .slice(0, 50) // Limit to the most recent 50 entries
-    .forEach(detail => {
-      const li = document.createElement('li');
-      li.textContent = `${new Date(detail.timestamp).toLocaleString()}: ${detail.url} (Pattern: ${detail.pattern})`;
-      blockedDetailsElement.appendChild(li);
-    });
+  if (blockedDetails.length === 0) {
+    const li = document.createElement('li');
+    li.textContent = 'No blocked details available.';
+    li.className = 'text-gray-500';
+    blockedDetailsElement.appendChild(li);
+  } else {
+    blockedDetails
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+      .slice(0, 50) // Limit to the most recent 50 entries
+      .forEach(detail => {
+        const li = document.createElement('li');
+        li.textContent = `${new Date(detail.timestamp).toLocaleString()}: ${detail.url} (Pattern: ${detail.pattern})`;
+        blockedDetailsElement.appendChild(li);
+      });
+  }
+  console.log('Blocked details updated in DOM');
 }
 
-// Add this new function to listen for storage changes
 function listenForStorageChanges() {
   chrome.storage.onChanged.addListener((changes, namespace) => {
     if (namespace === 'local' && (changes.tabStats || changes.dailyStats || changes.blockedPatterns || changes.blockedDetails)) {
@@ -110,6 +190,13 @@ enableBadgesCheckbox.addEventListener('change', () => {
 
 timeRangeSelect.addEventListener('change', updateStats);
 
-updateStats();
-updateSettings();
-listenForStorageChanges();
+// Initialize the page
+document.addEventListener('DOMContentLoaded', () => {
+  updateStats();
+  updateSettings();
+  listenForStorageChanges();
+
+  // Set Analytics tab as active by default
+  const analyticsTab = document.querySelector('[data-tab="analytics"]') as HTMLElement;
+  analyticsTab.click();
+});
