@@ -1,8 +1,8 @@
 import { BlockedSite } from './types';
 import './styles.css';
-import { matchesWildcard } from './utils';
+import { matchesWildcard, isPaidUser } from './utils';
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   const urlPatternInput = document.getElementById('urlPattern') as HTMLInputElement;
   const addPatternButton = document.getElementById('addPattern') as HTMLButtonElement;
   const patternList = document.getElementById('patternList') as HTMLUListElement;
@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const blockStatus = document.getElementById('blockStatus') as HTMLSpanElement;
   const blockingStatusElement = document.getElementById('blockingStatus') as HTMLParagraphElement;
   const patternCounter = document.getElementById('patternCounter');
+  const proStatus = document.getElementById('proStatus') as HTMLSpanElement;
 
   // Load the current state
   chrome.storage.local.get('isBlocking', result => {
@@ -89,17 +90,38 @@ document.addEventListener('DOMContentLoaded', () => {
     if (pattern) {
       chrome.storage.local.get('blockedSites', (data: { blockedSites?: BlockedSite[] }) => {
         const blockedSites: BlockedSite[] = data.blockedSites || [];
-        if (blockedSites.length < 5) {  // Add this check
-          blockedSites.push({ pattern, createdAt: new Date().toISOString() });
-          chrome.storage.local.set({ blockedSites }, () => {
-            urlPatternInput.value = '';
-            renderPatternList();
-          });
-        } else {
-          // Optionally, show an error message that max limit is reached
-          alert('Maximum number of patterns (5) reached.');
-        }
+        blockedSites.push({ pattern, createdAt: new Date().toISOString() });
+        chrome.storage.local.set({ blockedSites }, () => {
+          urlPatternInput.value = '';
+          renderPatternList();
+        });
       });
+    }
+  }
+
+  async function updatePatternCounter(count: number) {
+    const isPaid = await isPaidUser();
+    if (patternCounter) {
+      patternCounter.textContent = isPaid ? `${count}` : `${count}/5`;
+    }
+
+    const addPatternButton = document.getElementById('addPattern') as HTMLButtonElement;
+    const urlPatternInput = document.getElementById('urlPattern') as HTMLInputElement;
+
+    if (!isPaid && count >= 5) {
+      addPatternButton.disabled = true;
+      addPatternButton.innerHTML = '🔒 Go Pro for Unlimited Blocked Patterns';
+      addPatternButton.classList.add('bg-gray-400', 'cursor-not-allowed');
+      addPatternButton.classList.remove('bg-indigo-600', 'hover:bg-indigo-700');
+      urlPatternInput.disabled = true;
+      urlPatternInput.classList.add('bg-gray-100', 'cursor-not-allowed');
+    } else {
+      addPatternButton.disabled = false;
+      addPatternButton.textContent = 'Add Pattern';
+      addPatternButton.classList.remove('bg-gray-400', 'cursor-not-allowed');
+      addPatternButton.classList.add('bg-indigo-600', 'hover:bg-indigo-700');
+      urlPatternInput.disabled = false;
+      urlPatternInput.classList.remove('bg-gray-100', 'cursor-not-allowed');
     }
   }
 
@@ -108,7 +130,6 @@ document.addEventListener('DOMContentLoaded', () => {
       const blockedSites: BlockedSite[] = data.blockedSites || [];
       patternList.innerHTML = '';
 
-      // Add this line to update the counter
       updatePatternCounter(blockedSites.length);
 
       blockedSites.forEach((site, index) => {
@@ -123,33 +144,6 @@ document.addEventListener('DOMContentLoaded', () => {
       addRemoveListeners();
       updateCurrentDomainInfo();
     });
-  }
-
-  // Add this new function
-  function updatePatternCounter(count: number) {
-    const counterElement = document.getElementById('patternCounter');
-    const addPatternButton = document.getElementById('addPattern') as HTMLButtonElement;
-    const urlPatternInput = document.getElementById('urlPattern') as HTMLInputElement;
-
-    if (counterElement) {
-      counterElement.textContent = `${count}/5`;
-
-      if (count >= 5) {
-        addPatternButton.disabled = true;
-        addPatternButton.innerHTML = '🔒 Go Pro for Unlimited Blocked Patterns';
-        addPatternButton.classList.add('bg-gray-400', 'cursor-not-allowed');
-        addPatternButton.classList.remove('bg-indigo-600', 'hover:bg-indigo-700');
-        urlPatternInput.disabled = true;
-        urlPatternInput.classList.add('bg-gray-100', 'cursor-not-allowed');
-      } else {
-        addPatternButton.disabled = false;
-        addPatternButton.textContent = 'Add Pattern';
-        addPatternButton.classList.remove('bg-gray-400', 'cursor-not-allowed');
-        addPatternButton.classList.add('bg-indigo-600', 'hover:bg-indigo-700');
-        urlPatternInput.disabled = false;
-        urlPatternInput.classList.remove('bg-gray-100', 'cursor-not-allowed');
-      }
-    }
   }
 
   function addRemoveListeners() {
@@ -211,6 +205,12 @@ document.addEventListener('DOMContentLoaded', () => {
         renderPatternList();
       });
     });
+  }
+
+  const isPaid = await isPaidUser();
+
+  if (isPaid) {
+    proStatus.classList.remove('hidden');
   }
 
   updateCurrentDomainInfo();
