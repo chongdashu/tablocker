@@ -12,6 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const domainInfo = document.getElementById('domainInfo') as HTMLParagraphElement;
   const quickBlockButton = document.getElementById('quickBlockButton') as HTMLButtonElement;
   const blockStatus = document.getElementById('blockStatus') as HTMLSpanElement;
+  const blockingStatusElement = document.getElementById('blockingStatus') as HTMLParagraphElement;
 
   // Load the current state
   chrome.storage.local.get('isBlocking', result => {
@@ -71,10 +72,12 @@ document.addEventListener('DOMContentLoaded', () => {
       statusIndicator.textContent = 'Blocking Active';
       statusIndicator.classList.remove('bg-red-200', 'text-red-800');
       statusIndicator.classList.add('bg-green-200', 'text-green-800');
+      blockingStatusElement.textContent = "🚫 Blocked sites will be prevented from opening";
     } else {
       statusIndicator.textContent = 'Blocking Inactive';
       statusIndicator.classList.remove('bg-green-200', 'text-green-800');
       statusIndicator.classList.add('bg-red-200', 'text-red-800');
+      blockingStatusElement.textContent = "🟢 All sites allowed through";
     }
   }
 
