@@ -3,7 +3,7 @@
     "build": "webpack --mode production",
     "watch": "webpack --mode development --watch"
   },
-  "name": "chrome-extension",
+  "name": "un-tab",
   "version": "1.0.0",
   "main": "webpack.config.js",
   "keywords": [],

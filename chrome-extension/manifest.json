@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "TabGuardian: The Ultimate Tab Blocker",
+  "name": "Un-Tab: Keep Focus; Stop Distractions",
   "version": "1.0",
-  "description": "Take control of your browsing habits with TabGuardian - the snazzy, smart tab blocker that keeps you focused and productive!",
+  "description": "Un-Tab is a tab blocker that helps you stay focused and productive by blocking distracting websites.",
   "action": {
     "default_popup": "popup.html"
   },
