@@ -5,7 +5,6 @@ export interface BlockedSite {
 
 export interface TabStats {
   blocked: number;
-  allowed: number;
 }
 
 export interface Settings {

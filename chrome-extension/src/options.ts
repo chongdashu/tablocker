@@ -1,16 +1,16 @@
 import { TabStats } from './types';
 
 const blockedCountElement = document.getElementById('blockedCount') as HTMLSpanElement;
-const allowedCountElement = document.getElementById('allowedCount') as HTMLSpanElement;
+// Remove the allowedCountElement
+
 const enableNotificationsCheckbox = document.getElementById(
   'enableNotifications'
 ) as HTMLInputElement;
 
 function updateStats() {
   chrome.storage.local.get('tabStats', data => {
-    const stats: TabStats = data.tabStats || { blocked: 0, allowed: 0 };
+    const stats: TabStats = data.tabStats || { blocked: 0 };
     blockedCountElement.textContent = stats.blocked.toString();
-    allowedCountElement.textContent = stats.allowed.toString();
   });
 }
 
@@ -38,4 +38,4 @@ function listenForStorageChanges() {
 
 updateStats();
 updateSettings();
-listenForStorageChanges(); // Add this line to start listening for changes
+listenForStorageChanges();

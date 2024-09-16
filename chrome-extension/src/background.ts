@@ -92,18 +92,11 @@ import { matchesWildcard } from './utils';
               });
             } else {
               console.log('URL is not blocked');
-              // If the tab has finished loading and is not blocked
-              if (changeInfo.status === 'complete') {
-                console.log('Tab finished loading, updating stats');
-                updateStats('allowed');
-              }
+              // Remove the updateStats call for 'allowed'
             }
           } else {
             console.log('Blocking is disabled, allowing all URLs');
-            if (changeInfo.status === 'complete') {
-              console.log('Tab finished loading, updating stats');
-              updateStats('allowed');
-            }
+            // Remove the updateStats call for 'allowed'
           }
         });
       }
@@ -111,14 +104,14 @@ import { matchesWildcard } from './utils';
   }
 
   // Function to update tab statistics
-  function updateStats(type: 'blocked' | 'allowed') {
+  function updateStats(type: 'blocked') {
     console.log(`Updating stats: ${type}`);
     // Retrieve current tab stats from storage
     chrome.storage.local.get('tabStats', result => {
       // Initialize stats object if it doesn't exist
-      const stats: TabStats = result.tabStats || { blocked: 0, allowed: 0 };
-      // Increment the appropriate counter
-      stats[type]++;
+      const stats: TabStats = result.tabStats || { blocked: 0 };
+      // Increment the blocked counter
+      stats.blocked++;
       console.log('Updated stats:', stats);
       // Save the updated stats back to storage
       chrome.storage.local.set({ tabStats: stats });
