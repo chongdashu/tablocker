@@ -9,6 +9,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const toggleButton = document.getElementById('toggleButton') as HTMLButtonElement;
   const powerIcon = document.getElementById('powerIcon') as HTMLSpanElement;
   const statusIndicator = document.getElementById('statusIndicator') as HTMLDivElement;
+  const domainInfo = document.getElementById('domainInfo') as HTMLParagraphElement;
+  const quickBlockButton = document.getElementById('quickBlockButton') as HTMLButtonElement;
+  const blockStatus = document.getElementById('blockStatus') as HTMLSpanElement;
 
   // Load the current state
   chrome.storage.local.get('isBlocking', result => {
@@ -105,6 +108,7 @@ document.addEventListener('DOMContentLoaded', () => {
         patternList.appendChild(li);
       });
       addRemoveListeners();
+      updateCurrentDomainInfo(); // Add this line
     });
   }
 
@@ -121,6 +125,55 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     });
   }
+
+  function updateCurrentDomainInfo() {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      const currentTab = tabs[0];
+      if (currentTab && currentTab.url) {
+        const url = new URL(currentTab.url);
+        const domain = url.hostname;
+
+        chrome.storage.local.get('blockedSites', (data: { blockedSites?: BlockedSite[] }) => {
+          const blockedSites: BlockedSite[] = data.blockedSites || [];
+          const isBlocked = blockedSites.some(site => matchesWildcard(currentTab.url!, site.pattern));
+
+          domainInfo.textContent = domain;
+
+          if (isBlocked) {
+            blockStatus.textContent = '🚫 Blocked';
+            blockStatus.classList.add('bg-red-100', 'text-red-800');
+            blockStatus.classList.remove('bg-green-100', 'text-green-800');
+            quickBlockButton.classList.add('hidden');
+          } else {
+            blockStatus.textContent = '✅ Not Blocked';
+            blockStatus.classList.add('bg-green-100', 'text-green-800');
+            blockStatus.classList.remove('bg-red-100', 'text-red-800');
+            quickBlockButton.classList.remove('hidden');
+
+            // Add this line to set up the click event listener
+            quickBlockButton.onclick = () => quickBlockDomain(domain);
+          }
+        });
+      } else {
+        domainInfo.textContent = 'No active tab';
+        blockStatus.textContent = '';
+        quickBlockButton.classList.add('hidden');
+      }
+    });
+  }
+
+  function quickBlockDomain(domain: string) {
+    chrome.storage.local.get('blockedSites', (data: { blockedSites?: BlockedSite[] }) => {
+      const blockedSites: BlockedSite[] = data.blockedSites || [];
+      blockedSites.push({ pattern: `*://${domain}/*`, createdAt: new Date().toISOString() });
+      chrome.storage.local.set({ blockedSites }, () => {
+        updateCurrentDomainInfo();
+        renderPatternList();
+      });
+    });
+  }
+
+  updateCurrentDomainInfo();
 
   renderPatternList();
 });
