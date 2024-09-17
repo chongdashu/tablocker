@@ -15,11 +15,38 @@
   "files.trimTrailingWhitespace": true,
   "files.insertFinalNewline": true,
   "files.exclude": {
-    "chrome-extension/node_modules": true
+    "chrome-extension/node_modules": true,
+    "**/__pycache__": true,
+    "**/*.pyc": true,
+    "**/*.pyo": true,
+    "**/*.pyd": true,
+    "**/.pytest_cache": true,
+    "**/.mypy_cache": true,
+    "**/.ruff_cache": true,
+    "**/.coverage": true,
+    "**/htmlcov": true,
+    "**/.tox": true,
+    "**/.venv": true,
+    "**/build": true,
+    "**/dist": true,
+    "**/*.egg-info": true
   },
   "search.exclude": {
     "**/node_modules": true,
-    "**/dist": true
+    "**/__pycache__": true,
+    "**/*.pyc": true,
+    "**/*.pyo": true,
+    "**/*.pyd": true,
+    "**/.pytest_cache": true,
+    "**/.mypy_cache": true,
+    "**/.ruff_cache": true,
+    "**/.coverage": true,
+    "**/htmlcov": true,
+    "**/.tox": true,
+    "**/.venv": true,
+    "**/build": true,
+    "**/dist": true,
+    "**/*.egg-info": true
   },
   "[typescript]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
