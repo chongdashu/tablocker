@@ -23,3 +23,14 @@ class TokenData(BaseModel):
     """
 
     email: str | None = None
+
+
+class SessionResponse(BaseModel):
+    """
+    Represents the response for a session.
+
+    Attributes:
+        email (str): The email of the user.
+    """
+
+    email: str
