@@ -1,34 +1,20 @@
-from database.manager import get_db
-from database.models import User
 from fastapi import APIRouter
 from fastapi import Depends
-from fastapi import HTTPException
-from pydantic import BaseModel
 from sqlalchemy.orm import Session
+
+from api.user.router import UserCreate
+from database.manager import get_db
 
 router = APIRouter()
 
 
-class UserCreate(BaseModel):
-    email: str
-    password: str
-
-
 @router.post("/register")
-async def register(user: UserCreate, db: Session = Depends(get_db)):
-    # Add user registration logic here
-    pass
+async def register(user: UserCreate, db: Session = Depends(get_db)): ...
 
 
 @router.post("/login")
-async def login(user: UserCreate, db: Session = Depends(get_db)):
-    # Add user login logic here
-    pass
+async def login(user: UserCreate, db: Session = Depends(get_db)): ...
 
 
 @router.get("/status/{user_id}")
-async def get_user_status(user_id: int, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.id == user_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    return {"is_paying": user.is_paying}
+async def get_user_status(user_id: int, db: Session = Depends(get_db)): ...
