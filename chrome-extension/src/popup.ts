@@ -1,7 +1,7 @@
 import { BlockedSite } from './types';
 import './styles.css';
 import { matchesWildcard, isPaidUser } from './utils';
-import { supabase } from './utils';
+import axios from 'axios';
 
 document.addEventListener('DOMContentLoaded', async () => {
   const urlPatternInput = document.getElementById('urlPattern') as HTMLInputElement;
@@ -23,36 +23,50 @@ document.addEventListener('DOMContentLoaded', async () => {
   const logoutButton = document.getElementById('logoutButton') as HTMLButtonElement;
   const statusBar = document.getElementById('statusBar') as HTMLDivElement;
 
-  // Check auth session
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-  if (session) {
-    authSection.classList.add('hidden');
-    logoutButton.classList.remove('hidden');
-    proStatus.classList.remove('hidden');
-  } else {
+  // Add backend session check
+  try {
+    const response = await axios.get('https://your-backend.com/api/session', {
+      withCredentials: true,
+    });
+    if (response.data.session) {
+      authSection.classList.add('hidden');
+      logoutButton.classList.remove('hidden');
+      proStatus.classList.remove('hidden');
+      setStatus('Logged in successfully', 'success');
+    } else {
+      authSection.classList.remove('hidden');
+      logoutButton.classList.add('hidden');
+      proStatus.classList.add('hidden');
+      setStatus('Please log in to access all features', 'info');
+    }
+  } catch (error) {
+    console.error('Session check error:', error);
     authSection.classList.remove('hidden');
     logoutButton.classList.add('hidden');
     proStatus.classList.add('hidden');
+    setStatus('Unable to check login status. Please try again later.', 'error');
   }
 
   loginButton.addEventListener('click', async () => {
     setLoading('loginButton', true);
     const email = (document.getElementById('email') as HTMLInputElement).value;
     const password = (document.getElementById('password') as HTMLInputElement).value;
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    setLoading('loginButton', false);
-    if (error) {
-      console.error('Login error:', error.message);
-      // Display error to user
-      setStatus('Login Error: ' + error.message, 'error');
-    } else {
+    try {
+      const { data } = await axios.post(
+        'https://your-backend.com/api/login',
+        { email, password },
+        { withCredentials: true }
+      );
+      setLoading('loginButton', false);
       authSection.classList.add('hidden');
       logoutButton.classList.remove('hidden');
       proStatus.classList.remove('hidden');
       setStatus('', 'success');
       renderPatternList();
+    } catch (error: any) {
+      setLoading('loginButton', false);
+      console.error('Login error:', error.response?.data?.message || error.message);
+      setStatus('Login Error: ' + (error.response?.data?.message || 'Please try again.'), 'error');
     }
   });
 
@@ -60,26 +74,29 @@ document.addEventListener('DOMContentLoaded', async () => {
     setLoading('signupButton', true);
     const email = (document.getElementById('email') as HTMLInputElement).value;
     const password = (document.getElementById('password') as HTMLInputElement).value;
-    const { error } = await supabase.auth.signUp({ email, password });
-    setLoading('signupButton', false);
-    if (error) {
-      console.error('Signup error:', error.message);
-      // Display error to user
-      setStatus('Signup Error: ' + error.message, 'error');
-    } else {
-      // Optionally auto-login or prompt email verification
+    try {
+      const { data } = await axios.post(
+        'https://your-backend.com/api/signup',
+        { email, password },
+        { withCredentials: true }
+      );
+      setLoading('signupButton', false);
       setStatus('Signup successful! Please verify your email.', 'success');
+    } catch (error: any) {
+      setLoading('signupButton', false);
+      console.error('Signup error:', error.response?.data?.message || error.message);
+      setStatus('Signup Error: ' + (error.response?.data?.message || 'Please try again.'), 'error');
     }
   });
 
   logoutButton.addEventListener('click', async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      console.error('Logout error:', error.message);
-    } else {
+    try {
+      await axios.post('https://your-backend.com/api/logout', {}, { withCredentials: true });
       authSection.classList.remove('hidden');
       logoutButton.classList.add('hidden');
       proStatus.classList.add('hidden');
+    } catch (error: any) {
+      console.error('Logout error:', error.response?.data?.message || error.message);
     }
   });
 
@@ -287,7 +304,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   renderPatternList();
 });
 
-function setStatus(message: string, type: 'error' | 'success') {
+function setStatus(message: string, type: 'error' | 'success' | 'info') {
   const statusBar = document.getElementById('statusBar')!;
   const statusIcon = document.getElementById('statusIcon')!;
   const statusMessage = document.getElementById('statusMessage')!;
