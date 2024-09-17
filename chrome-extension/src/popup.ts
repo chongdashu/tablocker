@@ -21,6 +21,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const loginButton = document.getElementById('loginButton') as HTMLButtonElement;
   const signupButton = document.getElementById('signupButton') as HTMLButtonElement;
   const logoutButton = document.getElementById('logoutButton') as HTMLButtonElement;
+  const statusBar = document.getElementById('statusBar') as HTMLDivElement;
 
   // Check auth session
   const {
@@ -37,29 +38,37 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   loginButton.addEventListener('click', async () => {
+    setLoading('loginButton', true);
     const email = (document.getElementById('email') as HTMLInputElement).value;
     const password = (document.getElementById('password') as HTMLInputElement).value;
     const { error } = await supabase.auth.signInWithPassword({ email, password });
+    setLoading('loginButton', false);
     if (error) {
       console.error('Login error:', error.message);
-      // Optionally display error to user
+      // Display error to user
+      setStatus('Login Error: ' + error.message, 'error');
     } else {
       authSection.classList.add('hidden');
       logoutButton.classList.remove('hidden');
       proStatus.classList.remove('hidden');
+      setStatus('', 'success');
       renderPatternList();
     }
   });
 
   signupButton.addEventListener('click', async () => {
+    setLoading('signupButton', true);
     const email = (document.getElementById('email') as HTMLInputElement).value;
     const password = (document.getElementById('password') as HTMLInputElement).value;
     const { error } = await supabase.auth.signUp({ email, password });
+    setLoading('signupButton', false);
     if (error) {
       console.error('Signup error:', error.message);
-      // Optionally display error to user
+      // Display error to user
+      setStatus('Signup Error: ' + error.message, 'error');
     } else {
       // Optionally auto-login or prompt email verification
+      setStatus('Signup successful! Please verify your email.', 'success');
     }
   });
 
@@ -277,3 +286,51 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   renderPatternList();
 });
+
+function setStatus(message: string, type: 'error' | 'success') {
+  const statusBar = document.getElementById('statusBar')!;
+  const statusIcon = document.getElementById('statusIcon')!;
+  const statusMessage = document.getElementById('statusMessage')!;
+
+  if (message) {
+    statusBar.classList.remove('hidden');
+    statusMessage.textContent = message;
+
+    if (type === 'error') {
+      statusBar.classList.remove('bg-green-100', 'text-green-800');
+      statusBar.classList.add('bg-red-100', 'text-red-800');
+      statusIcon.innerHTML = `
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+      `;
+      statusIcon.classList.remove('text-green-500');
+      statusIcon.classList.add('text-red-500');
+    } else {
+      statusBar.classList.remove('bg-red-100', 'text-red-800');
+      statusBar.classList.add('bg-green-100', 'text-green-800');
+      statusIcon.innerHTML = `
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+      `;
+      statusIcon.classList.remove('text-red-500');
+      statusIcon.classList.add('text-green-500');
+    }
+  } else {
+    statusBar.classList.add('hidden');
+    statusMessage.textContent = '';
+  }
+}
+
+function setLoading(buttonId: string, isLoading: boolean) {
+  const button = document.getElementById(buttonId) as HTMLButtonElement;
+  const spinner = document.getElementById(`${buttonId}Spinner`) as SVGElement | null;
+  const buttonText = button.querySelector('span');
+
+  if (isLoading) {
+    button.disabled = true;
+    spinner?.classList.remove('hidden');
+    buttonText!.textContent = buttonId === 'loginButton' ? 'Logging in...' : 'Signing up...';
+  } else {
+    button.disabled = false;
+    spinner?.classList.add('hidden');
+    buttonText!.textContent = buttonId === 'loginButton' ? 'Login' : 'Sign Up';
+  }
+}
