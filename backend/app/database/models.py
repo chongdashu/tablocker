@@ -8,9 +8,10 @@ from sqlalchemy.orm import mapped_column
 Base = declarative_base()
 
 
-class User(Base):
-    __tablename__ = "users"
+class Profile(Base):
+    __tablename__ = "user_profiles"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    supabase_user_id: Mapped[str] = mapped_column(String, unique=True, index=True)
     email: Mapped[str] = mapped_column(String, unique=True, index=True)
     is_paying: Mapped[bool] = mapped_column(Boolean, default=False)

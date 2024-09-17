@@ -33,4 +33,17 @@ class SessionResponse(BaseModel):
         email (str): The email of the user.
     """
 
-    email: str
+    email: str | None = None
+    supabase_user_id: str
+
+
+class UserResponse(BaseModel):
+    """
+    Represents the response for a user.
+
+    Attributes:
+        email (str): The email of the user.
+    """
+
+    email: str | None = None
+    supabase_user_id: str

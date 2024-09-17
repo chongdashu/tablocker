@@ -1,9 +1,5 @@
 import logging
 import os
-from datetime import datetime
-from datetime import timedelta
-from datetime import timezone
-from typing import Any
 from typing import Dict
 
 from dotenv import load_dotenv
@@ -21,10 +17,9 @@ from supabase import Client
 from supabase import create_client
 
 from database.manager import get_db
-from database.models import User
 from routes.auth.api import SessionResponse
 from routes.auth.api import Token
-from routes.auth.api import TokenData
+from routes.auth.api import UserResponse
 from routes.user.api import UserCreate
 
 load_dotenv()
@@ -43,6 +38,10 @@ SUPABASE_URL = os.environ.get("SUPABASE_URL")
 if SUPABASE_URL is None:
     raise ValueError("SUPABASE_URL environment variable is not set")
 
+SUPABASE_JWT_PUBLIC_KEY = os.environ.get("SUPABASE_JWT_PUBLIC_KEY")
+if SUPABASE_JWT_PUBLIC_KEY is None:
+    raise ValueError("SUPABASE_JWT_PUBLIC_KEY environment variable is not set")
+
 # Create a Supabase client
 supabase_client: Client = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
 
@@ -53,34 +52,16 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 
-def require_supabase_anon_key() -> str:
-    if SUPABASE_ANON_KEY is None:
-        raise ValueError("SUPABASE_ANON_KEY environment variable is not set")
-    return SUPABASE_ANON_KEY
+def require_supabase_jwt_key() -> str:
+    if SUPABASE_JWT_PUBLIC_KEY is None:
+        raise ValueError("SUPABASE_JWT_PUBLIC_KEY environment variable is not set")
+    return SUPABASE_JWT_PUBLIC_KEY
 
 
-def create_access_token(data: Dict[str, Any], expires_delta: timedelta | None = None) -> str:
-    """
-    Create a new access token.
-
-    Args:
-        data (Dict[str, Any]): The data to be encoded in the token.
-        expires_delta (timedelta | None, optional): The expiration time for the token. Defaults to None.
-
-    Returns:
-        str: The encoded JWT token.
-    """
-    to_encode = data.copy()
-    if expires_delta:
-        expire = datetime.now(timezone.utc) + expires_delta
-    else:
-        expire = datetime.now(timezone.utc) + timedelta(minutes=15)
-    to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, require_supabase_anon_key(), algorithm=ALGORITHM)
-    return encoded_jwt
-
-
-async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> User:
+async def get_current_user(
+    token: str = Depends(oauth2_scheme),
+    # db: Session = Depends(get_db),
+) -> UserResponse:
     """
     Get the current authenticated user.
 
@@ -102,23 +83,34 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
     )
     try:
         logger.info("Decoding JWT token")
-        payload = jwt.decode(token, require_supabase_anon_key(), algorithms=[ALGORITHM])
-        email: str | None = payload.get("sub")
-        if email is None:
-            logger.info("Email not found in token payload")
+        payload = jwt.decode(
+            token,
+            require_supabase_jwt_key(),
+            algorithms=[ALGORITHM],
+            options={
+                "verify_aud": False,
+            },
+        )
+        uuid: str | None = payload.get("sub")
+        if uuid is None:
+            logger.info("UUID not found in token payload")
             raise credentials_exception
-        logger.info(f"Email extracted from token: {email}")
-        token_data = TokenData(email=email)
+        logger.info(f"UUID extracted from token: {uuid}")
     except JWTError:
         logger.info("JWT decoding failed", exc_info=True)
         raise credentials_exception
-    logger.info(f"Querying database for user with email: {email}")
-    user = db.query(User).filter(User.email == token_data.email).first()
-    if user is None:
-        logger.info(f"User not found for email: {email}")
+
+    logger.info(f"Checking supbase for user with uuid: {uuid}")
+
+    try:
+        response = supabase_client.auth.get_user(token)
+        if response is None:
+            logger.info(f"User not found for email: {uuid}")
+            raise credentials_exception
+    except Exception as e:
+        logger.error(f"Error querying Supabase for user: {str(e)}")
         raise credentials_exception
-    logger.info(f"User found: {user.email}")
-    return user
+    return UserResponse(supabase_user_id=response.user.id, email=response.user.email)
 
 
 @router.post("/register", response_model=Token)
@@ -164,10 +156,10 @@ async def register(user_create: UserCreate) -> Token:
 
         # User created and automatically signed in
         logger.info(f"User successfully registered and signed in: {user_create.username}")
-        access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-        access_token = create_access_token(data={"sub": response.user.email}, expires_delta=access_token_expires)
+        access_token = response.session.access_token
+        token_type = response.session.token_type
 
-        return Token(access_token=access_token, token_type="bearer")
+        return Token(access_token=access_token, token_type=token_type)
 
     except Exception as e:
         # Handle any errors that occur during registration
@@ -202,7 +194,6 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = 
                 "password": form_data.password,
             }
         )
-
         if response.user is None:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
@@ -210,8 +201,19 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = 
                 headers={"WWW-Authenticate": "Bearer"},
             )
 
-        # If successful, response.user will contain the user information
-        user = response.user
+        if response.session is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Login failed: Session not found",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+
+        access_token = response.session.access_token
+        token_type = response.session.token_type
+
+        logger.info(f"access_token: {access_token}")
+
+        return Token(access_token=access_token, token_type=token_type)
 
     except Exception as e:
         raise HTTPException(
@@ -219,13 +221,10 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = 
             detail=f"Login failed: {str(e)}",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = create_access_token(data={"sub": user.email}, expires_delta=access_token_expires)
-    return Token(access_token=access_token, token_type="bearer")
 
 
 @router.get("/session", response_model=SessionResponse)
-async def get_session(current_user: User = Depends(get_current_user)) -> SessionResponse:
+async def get_session(current_user: UserResponse = Depends(get_current_user)) -> SessionResponse:
     """
     Get the current user's session information.
 
@@ -236,7 +235,7 @@ async def get_session(current_user: User = Depends(get_current_user)) -> Session
         SessionResponse: The session information for the current user.
     """
     logger.info(f"Session requested for user: {current_user.email}")
-    return SessionResponse(email=current_user.email)
+    return SessionResponse(supabase_user_id=current_user.supabase_user_id, email=current_user.email)
 
 
 @router.post("/logout")
