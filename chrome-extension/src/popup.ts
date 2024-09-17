@@ -1,6 +1,7 @@
 import { BlockedSite } from './types';
 import './styles.css';
 import { matchesWildcard, isPaidUser } from './utils';
+import { supabase } from './utils';
 
 document.addEventListener('DOMContentLoaded', async () => {
   const urlPatternInput = document.getElementById('urlPattern') as HTMLInputElement;
@@ -15,6 +16,63 @@ document.addEventListener('DOMContentLoaded', async () => {
   const blockingStatusElement = document.getElementById('blockingStatus') as HTMLParagraphElement;
   const patternCounter = document.getElementById('patternCounter');
   const proStatus = document.getElementById('proStatus') as HTMLSpanElement;
+
+  const authSection = document.getElementById('authSection') as HTMLDivElement;
+  const loginButton = document.getElementById('loginButton') as HTMLButtonElement;
+  const signupButton = document.getElementById('signupButton') as HTMLButtonElement;
+  const logoutButton = document.getElementById('logoutButton') as HTMLButtonElement;
+
+  // Check auth session
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  if (session) {
+    authSection.classList.add('hidden');
+    logoutButton.classList.remove('hidden');
+    proStatus.classList.remove('hidden');
+  } else {
+    authSection.classList.remove('hidden');
+    logoutButton.classList.add('hidden');
+    proStatus.classList.add('hidden');
+  }
+
+  loginButton.addEventListener('click', async () => {
+    const email = (document.getElementById('email') as HTMLInputElement).value;
+    const password = (document.getElementById('password') as HTMLInputElement).value;
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) {
+      console.error('Login error:', error.message);
+      // Optionally display error to user
+    } else {
+      authSection.classList.add('hidden');
+      logoutButton.classList.remove('hidden');
+      proStatus.classList.remove('hidden');
+      renderPatternList();
+    }
+  });
+
+  signupButton.addEventListener('click', async () => {
+    const email = (document.getElementById('email') as HTMLInputElement).value;
+    const password = (document.getElementById('password') as HTMLInputElement).value;
+    const { error } = await supabase.auth.signUp({ email, password });
+    if (error) {
+      console.error('Signup error:', error.message);
+      // Optionally display error to user
+    } else {
+      // Optionally auto-login or prompt email verification
+    }
+  });
+
+  logoutButton.addEventListener('click', async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      console.error('Logout error:', error.message);
+    } else {
+      authSection.classList.remove('hidden');
+      logoutButton.classList.add('hidden');
+      proStatus.classList.add('hidden');
+    }
+  });
 
   // Load the current state
   chrome.storage.local.get('isBlocking', result => {
@@ -74,12 +132,12 @@ document.addEventListener('DOMContentLoaded', async () => {
       statusIndicator.textContent = 'Blocking Active';
       statusIndicator.classList.remove('bg-red-200', 'text-red-800');
       statusIndicator.classList.add('bg-green-200', 'text-green-800');
-      blockingStatusElement.textContent = "🚫 Blocked sites will be prevented from opening";
+      blockingStatusElement.textContent = '🚫 Blocked sites will be prevented from opening';
     } else {
       statusIndicator.textContent = 'Blocking Inactive';
       statusIndicator.classList.remove('bg-green-200', 'text-green-800');
       statusIndicator.classList.add('bg-red-200', 'text-red-800');
-      blockingStatusElement.textContent = "🟢 All sites allowed through";
+      blockingStatusElement.textContent = '🟢 All sites allowed through';
     }
   }
 
@@ -161,7 +219,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   function updateCurrentDomainInfo() {
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
       const currentTab = tabs[0];
       if (currentTab && currentTab.url) {
         const url = new URL(currentTab.url);
@@ -169,7 +227,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         chrome.storage.local.get('blockedSites', (data: { blockedSites?: BlockedSite[] }) => {
           const blockedSites: BlockedSite[] = data.blockedSites || [];
-          const isBlocked = blockedSites.some(site => matchesWildcard(currentTab.url!, site.pattern));
+          const isBlocked = blockedSites.some(site =>
+            matchesWildcard(currentTab.url!, site.pattern)
+          );
 
           domainInfo.textContent = domain;
 

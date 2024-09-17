@@ -1,3 +1,10 @@
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = '<supbase-url>';
+const supabaseAnonKey = '<supabase-anon-key>';
+
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
 export function matchesWildcard(str: string, pattern: string): boolean {
   // Convert the wildcard pattern to a regex pattern
   const regexPattern = pattern
@@ -16,21 +23,17 @@ export function matchesWildcard(str: string, pattern: string): boolean {
 const DEBUG_IS_PAID_USER = true;
 
 export async function isPaidUser(): Promise<boolean> {
-  // In a real implementation, you would check against your backend or a stored value
-  // For now, we'll use the debug variable and store the status in chrome.storage.local
-  return new Promise((resolve) => {
-    if (DEBUG_IS_PAID_USER) {
-      resolve(true);
-    } else {
-      chrome.storage.local.get('isPaidUser', (result) => {
-        resolve(result.isPaidUser === true);
-      });
-    }
-  });
+  const {
+    data: { session },
+    error,
+  } = await supabase.auth.getSession();
+  if (error || !session) return false;
+  // Optionally, implement additional checks (e.g., user roles)
+  return true; // Simplified for demonstration
 }
 
 export function setIsPaidUser(isPaid: boolean): Promise<void> {
-  return new Promise((resolve) => {
+  return new Promise(resolve => {
     chrome.storage.local.set({ isPaidUser: isPaid }, resolve);
   });
 }
