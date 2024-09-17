@@ -1,4 +1,3 @@
-import stripe
 from fastapi import APIRouter
 from fastapi import Depends
 from fastapi import HTTPException
@@ -10,8 +9,6 @@ from database.models import User
 
 router = APIRouter()
 
-stripe.api_key = "your_stripe_api_key"  # Replace with your actual Stripe API key
-
 
 @router.post("/webhook")
 async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
@@ -19,10 +16,10 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
     sig_header = request.headers.get("Stripe-Signature")
 
     try:
-        event = stripe.Webhook.construct_event(payload, sig_header, "your_stripe_webhook_secret")
+        event = payment.Webhook.construct_event(payload, sig_header, "your_stripe_webhook_secret")
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid payload")
-    except stripe.error.SignatureVerificationError:
+    except payment.error.SignatureVerificationError:
         raise HTTPException(status_code=400, detail="Invalid signature")
 
     if event["type"] == "checkout.session.completed":
