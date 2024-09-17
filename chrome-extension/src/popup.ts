@@ -38,7 +38,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Adjust based on your SessionResponse structure
         authSection.classList.add('hidden');
         logoutButton.classList.remove('hidden');
-        proStatus.classList.remove('hidden');
+        const isPaid = await isPaidUser();
+        if (isPaid) {
+          proStatus.classList.remove('hidden');
+        } else {
+          proStatus.classList.add('hidden');
+        }
         setStatus('Logged in successfully', 'success');
       } else {
         authSection.classList.remove('hidden');
@@ -91,7 +96,12 @@ document.addEventListener('DOMContentLoaded', async () => {
       localStorage.setItem('token', data.access_token); // Store the token
       authSection.classList.add('hidden');
       logoutButton.classList.remove('hidden');
-      proStatus.classList.remove('hidden');
+      const isPaid = await isPaidUser();
+      if (isPaid) {
+        proStatus.classList.remove('hidden');
+      } else {
+        proStatus.classList.add('hidden');
+      }
       setStatus('', 'success');
       renderPatternList();
     } catch (error: any) {
@@ -348,6 +358,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   if (isPaid) {
     proStatus.classList.remove('hidden');
+  } else {
+    proStatus.classList.add('hidden');
   }
 
   updateCurrentDomainInfo();

@@ -15,27 +15,43 @@ export function matchesWildcard(str: string, pattern: string): boolean {
 // Debug environment variable
 const DEBUG_IS_PAID_USER = true;
 
+import { BASE_URL } from './config';
+
 export async function isPaidUser(): Promise<boolean> {
   try {
-    const response = await fetch('https://your-backend.com/api/session', {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      return false; // No token, user is not logged in
+    }
+
+    const response = await fetch(`${BASE_URL}/api/auth/session`, {
       method: 'GET',
       credentials: 'include',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
     });
+
     if (!response.ok) {
       throw new Error('Failed to fetch session');
     }
-    const data = await response.json();
-    if (!data.session) return false;
-    // Optionally, implement additional checks (e.g., user roles)
-    return true; // User is authenticated
+
+    const data: SessionResponse = await response.json();
+    return data.is_paying || false; // Ensure we return false if is_paying is undefined
   } catch (error) {
-    console.error('Error checking session:', error);
+    console.error('Error checking paid status:', error);
     return false;
   }
 }
 
-export function setIsPaidUser(isPaid: boolean): Promise<void> {
-  return new Promise(resolve => {
-    chrome.storage.local.set({ isPaidUser: isPaid }, resolve);
-  });
+interface SessionResponse {
+  email: string | null;
+  supabase_user_id: string;
+  is_paying: boolean;
 }
+
+// export function setIsPaidUser(isPaid: boolean): Promise<void> {
+//   return new Promise(resolve => {
+//     chrome.storage.local.set({ isPaidUser: isPaid }, resolve);
+//   });
+// }

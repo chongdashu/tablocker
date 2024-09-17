@@ -2,6 +2,7 @@ import logging
 import os
 from typing import Dict
 
+from backend.app.database.models import PayingUser
 from dotenv import load_dotenv
 from fastapi import APIRouter
 from fastapi import Depends
@@ -224,7 +225,10 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = 
 
 
 @router.get("/session", response_model=SessionResponse)
-async def get_session(current_user: UserResponse = Depends(get_current_user)) -> SessionResponse:
+async def get_session(
+    current_user: UserResponse = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> SessionResponse:
     """
     Get the current user's session information.
 
@@ -235,7 +239,16 @@ async def get_session(current_user: UserResponse = Depends(get_current_user)) ->
         SessionResponse: The session information for the current user.
     """
     logger.info(f"Session requested for user: {current_user.email}")
-    return SessionResponse(supabase_user_id=current_user.supabase_user_id, email=current_user.email)
+
+    # Check if the user is in the paying_users table
+    paying_user = db.query(PayingUser).filter(PayingUser.supabase_user_id == current_user.supabase_user_id).first()
+    is_paying = paying_user is not None and paying_user.is_paying
+
+    return SessionResponse(
+        supabase_user_id=current_user.supabase_user_id,
+        email=current_user.email,
+        is_paying=is_paying,
+    )
 
 
 @router.post("/logout")

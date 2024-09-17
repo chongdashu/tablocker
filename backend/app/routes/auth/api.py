@@ -35,6 +35,7 @@ class SessionResponse(BaseModel):
 
     email: str | None = None
     supabase_user_id: str
+    is_paying: bool
 
 
 class UserResponse(BaseModel):
