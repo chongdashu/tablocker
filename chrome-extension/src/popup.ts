@@ -1,8 +1,12 @@
 import axios from 'axios';
 import { BASE_URL } from './config';
 import './styles.css';
+<<<<<<< feature/supabase
 import { BlockedSite } from './types';
 import { isPaidUser, matchesWildcard } from './utils';
+=======
+import { matchesWildcard, isPaidUser } from './utils';
+>>>>>>> main
 
 document.addEventListener('DOMContentLoaded', async () => {
   const urlPatternInput = document.getElementById('urlPattern') as HTMLInputElement;
@@ -17,6 +21,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const blockingStatusElement = document.getElementById('blockingStatus') as HTMLParagraphElement;
   const patternCounter = document.getElementById('patternCounter');
   const proStatus = document.getElementById('proStatus') as HTMLSpanElement;
+<<<<<<< feature/supabase
 
   const authSection = document.getElementById('authSection') as HTMLDivElement;
   const loginButton = document.getElementById('loginButton') as HTMLButtonElement;
@@ -160,6 +165,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       setStatus('Logout Error: ' + (error.response?.data?.message || 'Please try again.'), 'error');
     }
   });
+=======
+>>>>>>> main
 
   // Load the current state
   chrome.storage.local.get('isBlocking', result => {
@@ -358,8 +365,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   if (isPaid) {
     proStatus.classList.remove('hidden');
+<<<<<<< feature/supabase
   } else {
     proStatus.classList.add('hidden');
+=======
+>>>>>>> main
   }
 
   updateCurrentDomainInfo();

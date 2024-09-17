@@ -55,3 +55,4 @@ interface SessionResponse {
 //     chrome.storage.local.set({ isPaidUser: isPaid }, resolve);
 //   });
 // }
+
