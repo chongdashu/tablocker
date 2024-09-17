@@ -1,5 +1,6 @@
 import { TabStats, DailyStats, BlockedPattern, BlockedDetail } from './types';
 import { Chart, ChartConfiguration, ChartType } from 'chart.js/auto';
+import { isPaidUser } from './utils';
 
 const blockedCountElement = document.getElementById('blockedCount') as HTMLSpanElement;
 const enableBadgesCheckbox = document.getElementById('enableBadges') as HTMLInputElement;
@@ -25,7 +26,7 @@ tabButtons.forEach(button => {
   });
 });
 
-function updateStats() {
+async function updateStats() {
   chrome.storage.local.get(['tabStats', 'dailyStats', 'blockedPatterns', 'blockedDetails'], data => {
     const tabStats: TabStats = data.tabStats || { blocked: 0 };
     const dailyStats: { [date: string]: DailyStats } = data.dailyStats || {};
@@ -39,7 +40,16 @@ function updateStats() {
   });
 }
 
-function updateCharts(dailyStats: { [date: string]: DailyStats }, blockedPatterns: BlockedPattern) {
+async function updateCharts(dailyStats: { [date: string]: DailyStats }, blockedPatterns: BlockedPattern) {
+  const isPaid = await isPaidUser();
+  const paywallOverlay = document.getElementById('paywallOverlay');
+
+  if (isPaid) {
+    if (paywallOverlay) paywallOverlay.classList.add('hidden');
+  } else {
+    if (paywallOverlay) paywallOverlay.classList.remove('hidden');
+  }
+
   const timeRange = timeRangeSelect.value;
   const dates = Object.keys(dailyStats).sort();
   let filteredDates = dates;
@@ -50,14 +60,17 @@ function updateCharts(dailyStats: { [date: string]: DailyStats }, blockedPattern
     filteredDates = dates.slice(-30);
   }
 
-  // Update line chart
+  // Use real data for paid users, mock data for free users
+  const chartDates = isPaid ? filteredDates : ['2023-05-01', '2023-05-02', '2023-05-03', '2023-05-04', '2023-05-05'];
+  const chartData = isPaid ? filteredDates.map(date => dailyStats[date].blocked) : [5, 8, 3, 12, 7];
+
   const lineChartConfig: ChartConfiguration<'line'> = {
     type: 'line',
     data: {
-      labels: filteredDates,
+      labels: chartDates,
       datasets: [{
         label: 'Blocked Sites',
-        data: filteredDates.map(date => dailyStats[date].blocked),
+        data: chartData,
         borderColor: 'rgba(99, 102, 241, 1)', // Indigo color
         backgroundColor: 'rgba(99, 102, 241, 0.2)',
         tension: 0.1,
@@ -98,23 +111,20 @@ function updateCharts(dailyStats: { [date: string]: DailyStats }, blockedPattern
   statsChart = new Chart(statsChartCanvas, lineChartConfig);
 
   // Update pie chart
+  const pieChartLabels = isPaid ? Object.keys(blockedPatterns) : ['example.com', 'social.net', 'distraction.org', 'timewaste.io'];
+  const pieChartData = isPaid ? Object.values(blockedPatterns).map(pattern => pattern.count) : [15, 8, 12, 5];
+
   const pieChartConfig: ChartConfiguration<'pie'> = {
     type: 'pie',
     data: {
-      labels: Object.keys(blockedPatterns),
+      labels: pieChartLabels,
       datasets: [{
-        data: Object.values(blockedPatterns).map(pattern => pattern.count),
+        data: pieChartData,
         backgroundColor: [
           'rgba(255, 99, 132, 0.8)',   // Red
           'rgba(54, 162, 235, 0.8)',   // Blue
           'rgba(255, 206, 86, 0.8)',   // Yellow
           'rgba(75, 192, 192, 0.8)',   // Teal
-          'rgba(153, 102, 255, 0.8)',  // Purple
-          'rgba(255, 159, 64, 0.8)',   // Orange
-          'rgba(0, 204, 150, 0.8)',    // Green
-          'rgba(255, 99, 255, 0.8)',   // Pink
-          'rgba(128, 128, 128, 0.8)',  // Gray
-          'rgba(0, 128, 128, 0.8)',    // Dark Teal
         ],
       }]
     },
@@ -191,7 +201,14 @@ enableBadgesCheckbox.addEventListener('change', () => {
 timeRangeSelect.addEventListener('change', updateStats);
 
 // Initialize the page
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+  const proStatus = document.getElementById('proStatus') as HTMLSpanElement;
+  const isPaid = await isPaidUser();
+
+  if (isPaid) {
+    proStatus.classList.remove('hidden');
+  }
+
   updateStats();
   updateSettings();
   listenForStorageChanges();

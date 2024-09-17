@@ -1,8 +1,8 @@
 import { BlockedSite } from './types';
 import './styles.css';
-import { matchesWildcard } from './utils';
+import { matchesWildcard, isPaidUser } from './utils';
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   const urlPatternInput = document.getElementById('urlPattern') as HTMLInputElement;
   const addPatternButton = document.getElementById('addPattern') as HTMLButtonElement;
   const patternList = document.getElementById('patternList') as HTMLUListElement;
@@ -13,6 +13,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const quickBlockButton = document.getElementById('quickBlockButton') as HTMLButtonElement;
   const blockStatus = document.getElementById('blockStatus') as HTMLSpanElement;
   const blockingStatusElement = document.getElementById('blockingStatus') as HTMLParagraphElement;
+  const patternCounter = document.getElementById('patternCounter');
+  const proStatus = document.getElementById('proStatus') as HTMLSpanElement;
 
   // Load the current state
   chrome.storage.local.get('isBlocking', result => {
@@ -97,10 +99,39 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  async function updatePatternCounter(count: number) {
+    const isPaid = await isPaidUser();
+    if (patternCounter) {
+      patternCounter.textContent = isPaid ? `${count}` : `${count}/5`;
+    }
+
+    const addPatternButton = document.getElementById('addPattern') as HTMLButtonElement;
+    const urlPatternInput = document.getElementById('urlPattern') as HTMLInputElement;
+
+    if (!isPaid && count >= 5) {
+      addPatternButton.disabled = true;
+      addPatternButton.innerHTML = '🔒 Go Pro for Unlimited Blocked Patterns';
+      addPatternButton.classList.add('bg-gray-400', 'cursor-not-allowed');
+      addPatternButton.classList.remove('bg-indigo-600', 'hover:bg-indigo-700');
+      urlPatternInput.disabled = true;
+      urlPatternInput.classList.add('bg-gray-100', 'cursor-not-allowed');
+    } else {
+      addPatternButton.disabled = false;
+      addPatternButton.textContent = 'Add Pattern';
+      addPatternButton.classList.remove('bg-gray-400', 'cursor-not-allowed');
+      addPatternButton.classList.add('bg-indigo-600', 'hover:bg-indigo-700');
+      urlPatternInput.disabled = false;
+      urlPatternInput.classList.remove('bg-gray-100', 'cursor-not-allowed');
+    }
+  }
+
   function renderPatternList() {
     chrome.storage.local.get('blockedSites', (data: { blockedSites?: BlockedSite[] }) => {
       const blockedSites: BlockedSite[] = data.blockedSites || [];
       patternList.innerHTML = '';
+
+      updatePatternCounter(blockedSites.length);
+
       blockedSites.forEach((site, index) => {
         const li = document.createElement('li');
         li.className = 'flex justify-between items-center bg-white p-3 rounded-lg shadow-sm';
@@ -111,7 +142,7 @@ document.addEventListener('DOMContentLoaded', () => {
         patternList.appendChild(li);
       });
       addRemoveListeners();
-      updateCurrentDomainInfo(); // Add this line
+      updateCurrentDomainInfo();
     });
   }
 
@@ -174,6 +205,12 @@ document.addEventListener('DOMContentLoaded', () => {
         renderPatternList();
       });
     });
+  }
+
+  const isPaid = await isPaidUser();
+
+  if (isPaid) {
+    proStatus.classList.remove('hidden');
   }
 
   updateCurrentDomainInfo();
