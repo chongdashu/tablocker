@@ -12,6 +12,6 @@ class PayingUser(Base):
     __tablename__ = "paying_user"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    supabase_user_id: Mapped[str] = mapped_column(String, unique=True, index=True)
+    supabase_user_id: Mapped[str | None] = mapped_column(String, unique=True, index=True, nullable=True)
     email: Mapped[str] = mapped_column(String, unique=True, index=True)
     is_paying: Mapped[bool] = mapped_column(Boolean, default=False)

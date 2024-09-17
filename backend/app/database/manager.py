@@ -24,5 +24,5 @@ def get_db():
         db.close()
 
 
-async def init_db():
-    await Base.metadata.create_all(engine)
+def init_db():
+    Base.metadata.create_all(engine)
