@@ -15,22 +15,44 @@ export function matchesWildcard(str: string, pattern: string): boolean {
 // Debug environment variable
 const DEBUG_IS_PAID_USER = true;
 
+import { BASE_URL } from './config';
+
 export async function isPaidUser(): Promise<boolean> {
-  // In a real implementation, you would check against your backend or a stored value
-  // For now, we'll use the debug variable and store the status in chrome.storage.local
-  return new Promise((resolve) => {
-    if (DEBUG_IS_PAID_USER) {
-      resolve(true);
-    } else {
-      chrome.storage.local.get('isPaidUser', (result) => {
-        resolve(result.isPaidUser === true);
-      });
+  try {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      return false; // No token, user is not logged in
     }
-  });
+
+    const response = await fetch(`${BASE_URL}/api/auth/session`, {
+      method: 'GET',
+      credentials: 'include',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch session');
+    }
+
+    const data: SessionResponse = await response.json();
+    return data.is_paying || false; // Ensure we return false if is_paying is undefined
+  } catch (error) {
+    console.error('Error checking paid status:', error);
+    return false;
+  }
 }
 
-export function setIsPaidUser(isPaid: boolean): Promise<void> {
-  return new Promise((resolve) => {
-    chrome.storage.local.set({ isPaidUser: isPaid }, resolve);
-  });
+interface SessionResponse {
+  email: string | null;
+  supabase_user_id: string;
+  is_paying: boolean;
 }
+
+// export function setIsPaidUser(isPaid: boolean): Promise<void> {
+//   return new Promise(resolve => {
+//     chrome.storage.local.set({ isPaidUser: isPaid }, resolve);
+//   });
+// }
+
