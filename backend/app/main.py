@@ -1,9 +1,11 @@
 import logging
+from contextlib import asynccontextmanager
 
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from database.manager import init_db
 from routes.auth.router import router as auth_router
 from routes.stripe.router import router as stripe_router
 from routes.user.router import router as user_router
@@ -14,7 +16,14 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
-app = FastAPI()
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    init_db()
+    yield
+
+
+app = FastAPI(lifespan=lifespan)
 
 app.include_router(user_router, prefix="/api/user", tags=["user"])
 app.include_router(stripe_router, prefix="/api/stripe", tags=["stripe"])
@@ -29,6 +38,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 if __name__ == "__main__":
     import uvicorn
