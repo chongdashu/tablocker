@@ -47,7 +47,7 @@ convention = "google"
 
 [lint.isort]
 force-single-line = true
-known-first-party = ["app", "app.api", "app.api.stripe", "app.api.user", "app.database"]
+known-first-party = ["app", "api", "api.stripe", "api.user", "database"]
 
 [lint.flake8-bugbear]
 extend-immutable-calls = ["fastapi.Depends", "fastapi.Query", "fastapi.Body", "fastapi.Path"]

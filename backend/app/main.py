@@ -1,6 +1,7 @@
+from fastapi import FastAPI
+
 from api.stripe.router import router as stripe_router
 from api.user.router import router as user_router
-from fastapi import FastAPI
 
 app = FastAPI()
 
