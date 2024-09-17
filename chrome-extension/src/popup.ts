@@ -45,7 +45,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     authSection.classList.remove('hidden');
     logoutButton.classList.add('hidden');
     proStatus.classList.add('hidden');
-    setStatus('Unable to check login status. Please try again later.', 'error');
+    setStatus('Unable to check login status. Please try again later.' + error, 'error');
   }
 
   loginButton.addEventListener('click', async () => {
@@ -83,9 +83,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       renderPatternList();
     } catch (error: any) {
       setLoading('loginButton', false);
-      console.error('Login error:', error.response?.data?.message || error.message);
+      console.error(error);
+      console.error('Login error:', error.response?.data?.detail || error.message);
       setStatus(
-        'Login Error: ' + (error.response?.data?.message || error.message || 'Please try again.'),
+        'Login Error: ' + (error.response?.data?.detail || error.message || 'Please try again.'),
         'error'
       );
     }
@@ -95,6 +96,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     setLoading('signupButton', true);
     const email = (document.getElementById('email') as HTMLInputElement).value;
     const password = (document.getElementById('password') as HTMLInputElement).value;
+
     try {
       const { data } = await axios.post(
         `${BASE_URL}/api/auth/register`,
@@ -105,8 +107,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       setStatus('Signup successful! Please verify your email.', 'success');
     } catch (error: any) {
       setLoading('signupButton', false);
-      console.error('Signup error:', error.response?.data?.message || error.message);
-      setStatus('Signup Error: ' + (error.response?.data?.message || 'Please try again.'), 'error');
+      console.error(error);
+      console.error('Signup error:', error.response?.data?.detail || error.message);
+      setStatus('Signup Error: ' + (error.response?.data?.detail || 'Please try again.'), 'error');
     }
   });
 

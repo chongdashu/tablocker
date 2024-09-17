@@ -1,3 +1,4 @@
+import logging
 import os
 from datetime import datetime
 from datetime import timedelta
@@ -27,6 +28,9 @@ from routes.auth.api import TokenData
 from routes.user.api import UserCreate
 
 load_dotenv()
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 router = APIRouter()
 
@@ -123,16 +127,18 @@ async def register(user_create: UserCreate) -> Token:
     Raises:
         HTTPException: If registration fails or email confirmation is required.
     """
+    logger.info(f"Attempting to register user: {user_create.username}")
     try:
         # Attempt to sign up the user using Supabase
         response = supabase_client.auth.sign_up(
             {
-                "email": user_create.email,
+                "email": user_create.username,
                 "password": user_create.password,
             }
         )
 
         if response.user is None:
+            logger.error(f"Registration failed for user: {user_create.username}")
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Registration failed: User could not be created",
@@ -141,6 +147,7 @@ async def register(user_create: UserCreate) -> Token:
         if response.session is None:
             # User created but not automatically signed in
             # This might happen if email confirmation is required
+            logger.info(f"User registered but requires email confirmation: {user_create.username}")
             raise HTTPException(
                 status_code=status.HTTP_202_ACCEPTED,
                 detail="Registration successful. Please check your email to confirm your account.",
@@ -148,6 +155,7 @@ async def register(user_create: UserCreate) -> Token:
             )
 
         # User created and automatically signed in
+        logger.info(f"User successfully registered and signed in: {user_create.username}")
         access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
         access_token = create_access_token(data={"sub": response.user.email}, expires_delta=access_token_expires)
 
@@ -155,6 +163,7 @@ async def register(user_create: UserCreate) -> Token:
 
     except Exception as e:
         # Handle any errors that occur during registration
+        logger.error(f"Registration failed for user {user_create.username}: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Registration failed: {str(e)}",
@@ -176,6 +185,7 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = 
     Raises:
         HTTPException: If login fails or credentials are incorrect.
     """
+    logger.info(f"Attempting to register user: {form_data}")
     try:
         # Attempt to sign in the user with Supabase
         response = supabase_client.auth.sign_in_with_password(

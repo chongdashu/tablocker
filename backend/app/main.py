@@ -1,3 +1,5 @@
+import logging
+
 from dotenv import load_dotenv
 from fastapi import FastAPI
 
@@ -6,6 +8,10 @@ from routes.stripe.router import router as stripe_router
 from routes.user.router import router as user_router
 
 load_dotenv()
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+logger = logging.getLogger(__name__)
 
 app = FastAPI()
 
@@ -16,4 +22,5 @@ app.include_router(auth_router, prefix="/api/auth", tags=["auth"])
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    logger.info("Starting the application")
+    uvicorn.run(app, host="0.0.0.0", port=8000, log_level="info")
