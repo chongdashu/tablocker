@@ -24,28 +24,40 @@ document.addEventListener('DOMContentLoaded', async () => {
   const logoutButton = document.getElementById('logoutButton') as HTMLButtonElement;
   const statusBar = document.getElementById('statusBar') as HTMLDivElement;
 
-  // Add backend session check
-  try {
-    const response = await axios.get(`${BASE_URL}/api/auth/session`, {
-      withCredentials: true,
-    });
-    if (response.data.session) {
-      authSection.classList.add('hidden');
-      logoutButton.classList.remove('hidden');
-      proStatus.classList.remove('hidden');
-      setStatus('Logged in successfully', 'success');
-    } else {
+  // Load the stored token if available
+  const storedToken = localStorage.getItem('token');
+  if (storedToken) {
+    try {
+      const response = await axios.get(`${BASE_URL}/api/auth/session`, {
+        headers: {
+          Authorization: `Bearer ${storedToken}`, // Include token in headers
+        },
+        withCredentials: true,
+      });
+      if (response.data.email) {
+        // Adjust based on your SessionResponse structure
+        authSection.classList.add('hidden');
+        logoutButton.classList.remove('hidden');
+        proStatus.classList.remove('hidden');
+        setStatus('Logged in successfully', 'success');
+      } else {
+        authSection.classList.remove('hidden');
+        logoutButton.classList.add('hidden');
+        proStatus.classList.add('hidden');
+        setStatus('Please log in to access all features', 'info');
+      }
+    } catch (error) {
+      console.error('Session check error:', error);
       authSection.classList.remove('hidden');
       logoutButton.classList.add('hidden');
       proStatus.classList.add('hidden');
-      setStatus('Please log in to access all features', 'info');
+      setStatus('Unable to check login status. Please try again later.' + error, 'error');
     }
-  } catch (error) {
-    console.error('Session check error:', error);
+  } else {
     authSection.classList.remove('hidden');
     logoutButton.classList.add('hidden');
     proStatus.classList.add('hidden');
-    setStatus('Unable to check login status. Please try again later.' + error, 'error');
+    setStatus('Please log in to access all features', 'info');
   }
 
   loginButton.addEventListener('click', async () => {
@@ -76,6 +88,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         withCredentials: true,
       });
       setLoading('loginButton', false);
+      localStorage.setItem('token', data.access_token); // Store the token
       authSection.classList.add('hidden');
       logoutButton.classList.remove('hidden');
       proStatus.classList.remove('hidden');
@@ -104,6 +117,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         { withCredentials: true }
       );
       setLoading('signupButton', false);
+      localStorage.setItem('token', data.access_token); // Store the token if returned
       setStatus('Signup successful! Please verify your email.', 'success');
     } catch (error: any) {
       setLoading('signupButton', false);
@@ -115,7 +129,18 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   logoutButton.addEventListener('click', async () => {
     try {
-      await axios.post(`${BASE_URL}/api/auth/logout`, {}, { withCredentials: true });
+      const token = localStorage.getItem('token'); // Retrieve the token
+      await axios.post(
+        `${BASE_URL}/api/auth/logout`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`, // Include token in headers
+          },
+          withCredentials: true,
+        }
+      );
+      localStorage.removeItem('token'); // Remove the token on logout
       authSection.classList.remove('hidden');
       logoutButton.classList.add('hidden');
       proStatus.classList.add('hidden');

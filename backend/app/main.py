@@ -2,6 +2,7 @@ import logging
 
 from dotenv import load_dotenv
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from routes.auth.router import router as auth_router
 from routes.stripe.router import router as stripe_router
@@ -18,6 +19,16 @@ app = FastAPI()
 app.include_router(user_router, prefix="/api/user", tags=["user"])
 app.include_router(stripe_router, prefix="/api/stripe", tags=["stripe"])
 app.include_router(auth_router, prefix="/api/auth", tags=["auth"])
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "chrome-extension://iaaiaejgfjimgoiagiahmeiogbiomlaa",  # Allow your Chrome extension
+    ],
+    allow_credentials=True,  # Enable credentials
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 if __name__ == "__main__":
     import uvicorn

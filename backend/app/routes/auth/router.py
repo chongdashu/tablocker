@@ -94,22 +94,30 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
     Raises:
         HTTPException: If the credentials are invalid or the user is not found.
     """
+    logger.info(f"Attempting to get current user with token: {token[:10]}...")
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
+        logger.info("Decoding JWT token")
         payload = jwt.decode(token, require_supabase_anon_key(), algorithms=[ALGORITHM])
         email: str | None = payload.get("sub")
         if email is None:
+            logger.info("Email not found in token payload")
             raise credentials_exception
+        logger.info(f"Email extracted from token: {email}")
         token_data = TokenData(email=email)
     except JWTError:
+        logger.info("JWT decoding failed", exc_info=True)
         raise credentials_exception
+    logger.info(f"Querying database for user with email: {email}")
     user = db.query(User).filter(User.email == token_data.email).first()
     if user is None:
+        logger.info(f"User not found for email: {email}")
         raise credentials_exception
+    logger.info(f"User found: {user.email}")
     return user
 
 
@@ -216,6 +224,7 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = 
     return Token(access_token=access_token, token_type="bearer")
 
 
+@router.get("/session", response_model=SessionResponse)
 async def get_session(current_user: User = Depends(get_current_user)) -> SessionResponse:
     """
     Get the current user's session information.
@@ -226,6 +235,7 @@ async def get_session(current_user: User = Depends(get_current_user)) -> Session
     Returns:
         SessionResponse: The session information for the current user.
     """
+    logger.info(f"Session requested for user: {current_user.email}")
     return SessionResponse(email=current_user.email)
 
 
