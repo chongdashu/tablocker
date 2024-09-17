@@ -1,7 +1,8 @@
-import { BlockedSite } from './types';
-import './styles.css';
-import { matchesWildcard, isPaidUser } from './utils';
 import axios from 'axios';
+import { BASE_URL } from './config';
+import './styles.css';
+import { BlockedSite } from './types';
+import { isPaidUser, matchesWildcard } from './utils';
 
 document.addEventListener('DOMContentLoaded', async () => {
   const urlPatternInput = document.getElementById('urlPattern') as HTMLInputElement;
@@ -25,7 +26,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Add backend session check
   try {
-    const response = await axios.get('https://your-backend.com/api/session', {
+    const response = await axios.get(`${BASE_URL}/api/auth/session`, {
       withCredentials: true,
     });
     if (response.data.session) {
@@ -49,14 +50,31 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   loginButton.addEventListener('click', async () => {
     setLoading('loginButton', true);
-    const email = (document.getElementById('email') as HTMLInputElement).value;
-    const password = (document.getElementById('password') as HTMLInputElement).value;
+    const emailInput = document.getElementById('email') as HTMLInputElement;
+    const passwordInput = document.getElementById('password') as HTMLInputElement;
+
+    if (!emailInput || !passwordInput) {
+      setStatus('Email or password input not found', 'error');
+      setLoading('loginButton', false);
+      return;
+    }
+
+    const email = emailInput.value.trim();
+    const password = passwordInput.value;
+
+    if (!email || !password) {
+      setStatus('Please enter both email and password', 'error');
+      setLoading('loginButton', false);
+      return;
+    }
     try {
-      const { data } = await axios.post(
-        'https://your-backend.com/api/login',
-        { email, password },
-        { withCredentials: true }
-      );
+      const params = new URLSearchParams();
+      params.append('username', email);
+      params.append('password', password);
+
+      const { data } = await axios.post(`${BASE_URL}/api/auth/login`, params, {
+        withCredentials: true,
+      });
       setLoading('loginButton', false);
       authSection.classList.add('hidden');
       logoutButton.classList.remove('hidden');
@@ -66,7 +84,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     } catch (error: any) {
       setLoading('loginButton', false);
       console.error('Login error:', error.response?.data?.message || error.message);
-      setStatus('Login Error: ' + (error.response?.data?.message || 'Please try again.'), 'error');
+      setStatus(
+        'Login Error: ' + (error.response?.data?.message || error.message || 'Please try again.'),
+        'error'
+      );
     }
   });
 
@@ -76,8 +97,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const password = (document.getElementById('password') as HTMLInputElement).value;
     try {
       const { data } = await axios.post(
-        'https://your-backend.com/api/signup',
-        { email, password },
+        `${BASE_URL}/api/auth/register`,
+        { username: email, password: password },
         { withCredentials: true }
       );
       setLoading('signupButton', false);
@@ -91,12 +112,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   logoutButton.addEventListener('click', async () => {
     try {
-      await axios.post('https://your-backend.com/api/logout', {}, { withCredentials: true });
+      await axios.post(`${BASE_URL}/api/auth/logout`, {}, { withCredentials: true });
       authSection.classList.remove('hidden');
       logoutButton.classList.add('hidden');
       proStatus.classList.add('hidden');
+      setStatus('Logged out successfully', 'success');
     } catch (error: any) {
       console.error('Logout error:', error.response?.data?.message || error.message);
+      setStatus('Logout Error: ' + (error.response?.data?.message || 'Please try again.'), 'error');
     }
   });
 

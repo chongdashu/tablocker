@@ -1,10 +1,3 @@
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = '<supbase-url>';
-const supabaseAnonKey = '<supabase-anon-key>';
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
 export function matchesWildcard(str: string, pattern: string): boolean {
   // Convert the wildcard pattern to a regex pattern
   const regexPattern = pattern
@@ -23,13 +16,22 @@ export function matchesWildcard(str: string, pattern: string): boolean {
 const DEBUG_IS_PAID_USER = true;
 
 export async function isPaidUser(): Promise<boolean> {
-  const {
-    data: { session },
-    error,
-  } = await supabase.auth.getSession();
-  if (error || !session) return false;
-  // Optionally, implement additional checks (e.g., user roles)
-  return true; // Simplified for demonstration
+  try {
+    const response = await fetch('https://your-backend.com/api/session', {
+      method: 'GET',
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      throw new Error('Failed to fetch session');
+    }
+    const data = await response.json();
+    if (!data.session) return false;
+    // Optionally, implement additional checks (e.g., user roles)
+    return true; // User is authenticated
+  } catch (error) {
+    console.error('Error checking session:', error);
+    return false;
+  }
 }
 
 export function setIsPaidUser(isPaid: boolean): Promise<void> {
