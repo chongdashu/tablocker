@@ -146,6 +146,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   function setStatus(message: string, type: 'error' | 'success' | 'info') {
+    const statusBar = document.getElementById('statusBar')!;
     const statusIcon = document.getElementById('statusIcon')!;
     const statusMessage = document.getElementById('statusMessage')!;
 
@@ -153,22 +154,34 @@ document.addEventListener('DOMContentLoaded', async () => {
       statusBar.classList.remove('hidden');
       statusMessage.textContent = message;
 
+      statusBar.classList.remove(
+        'bg-green-100',
+        'text-green-800',
+        'bg-red-100',
+        'text-red-800',
+        'bg-blue-100',
+        'text-blue-800'
+      );
+      statusIcon.classList.remove('text-green-500', 'text-red-500', 'text-blue-500');
+
       if (type === 'error') {
-        statusBar.classList.remove('bg-green-100', 'text-green-800');
         statusBar.classList.add('bg-red-100', 'text-red-800');
         statusIcon.innerHTML = `
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                `;
-        statusIcon.classList.remove('text-green-500');
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+        `;
         statusIcon.classList.add('text-red-500');
-      } else {
-        statusBar.classList.remove('bg-red-100', 'text-red-800');
+      } else if (type === 'success') {
         statusBar.classList.add('bg-green-100', 'text-green-800');
         statusIcon.innerHTML = `
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                `;
-        statusIcon.classList.remove('text-red-500');
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+        `;
         statusIcon.classList.add('text-green-500');
+      } else if (type === 'info') {
+        statusBar.classList.add('bg-blue-100', 'text-blue-800');
+        statusIcon.innerHTML = `
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        `;
+        statusIcon.classList.add('text-blue-500');
       }
     } else {
       statusBar.classList.add('hidden');
