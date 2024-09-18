@@ -1,21 +1,20 @@
-import os
 import logging
+import os
+
+import stripe
+import stripe.error
 from dotenv import load_dotenv
 from fastapi import APIRouter
 from fastapi import Depends
 from fastapi import Request
 from sqlalchemy.orm import Session
-import stripe
-import stripe.error
 
 from database.manager import get_db
-
 from database.models import PayingUser
 
 router = APIRouter()
 
 logger = logging.getLogger(__name__)
-
 
 
 @router.post("/webhook")
@@ -37,7 +36,7 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
 
     # Get the event data from the webhook
     payload = await request.body()
-    sig_header = request.headers.get('stripe-signature')
+    sig_header = request.headers.get("stripe-signature")
 
     try:
         event = stripe.Webhook.construct_event(
@@ -56,13 +55,13 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
         return {"error": "Invalid signature"}
 
     # Handle the checkout.session.completed event
-    if event['type'] == 'checkout.session.completed':
+    if event["type"] == "checkout.session.completed":
         logger.info("Processing checkout.session.completed event")
-        session = event['data']['object']
+        session = event["data"]["object"]
 
         # Retrieve the session to get customer details
-        checkout_session = stripe.checkout.Session.retrieve(session['id'])
-        customer_email = checkout_session['customer_details']['email']
+        checkout_session = stripe.checkout.Session.retrieve(session["id"])
+        customer_email = checkout_session["customer_details"]["email"]
         logger.info(f"Customer email: {customer_email}")
 
         # Create or update the PayingUser entry
