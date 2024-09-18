@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Un-Tab Login</title>
+    <meta name="description" content="Login to Un-Tab" />
+  </head>
+  <body class="w-80 p-6 bg-gradient-to-br from-blue-50 to-indigo-100 font-sans">
+    <h1 class="text-2xl font-bold text-indigo-800 mb-4">Un-Tab Login</h1>
+
+    <div id="authSection" class="mb-4">
+      <input type="email" id="email" placeholder="Email" class="w-full p-2 border rounded mb-2" />
+      <input
+        type="password"
+        id="password"
+        placeholder="Password"
+        class="w-full p-2 border rounded mb-2"
+      />
+      <button
+        id="loginButton"
+        class="w-full bg-indigo-600 text-white py-2 rounded hover:bg-indigo-700 transition duration-200 ease-in-out flex items-center justify-center"
+      >
+        <span>Login</span>
+        <svg
+          id="loginSpinner"
+          class="w-5 h-5 ml-2 animate-spin hidden"
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+        >
+          <circle
+            class="opacity-25"
+            cx="12"
+            cy="12"
+            r="10"
+            stroke="currentColor"
+            stroke-width="4"
+          ></circle>
+          <path
+            class="opacity-75"
+            fill="currentColor"
+            d="M4 12a8 8 0 018-8v4l3-3-3-3v4a12 12 0 00-12 12h4z"
+          ></path>
+        </svg>
+      </button>
+      <button
+        id="signupButton"
+        class="w-full bg-green-600 text-white py-2 rounded mt-2 hover:bg-green-700 transition duration-200 ease-in-out flex items-center justify-center"
+      >
+        <span>Sign Up</span>
+        <svg
+          id="signupSpinner"
+          class="w-5 h-5 ml-2 animate-spin hidden"
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+        >
+          <circle
+            class="opacity-25"
+            cx="12"
+            cy="12"
+            r="10"
+            stroke="currentColor"
+            stroke-width="4"
+          ></circle>
+          <path
+            class="opacity-75"
+            fill="currentColor"
+            d="M4 12a8 8 0 018-8v4l3-3-3-3v4a12 12 0 00-12 12h4z"
+          ></path>
+        </svg>
+      </button>
+    </div>
+
+    <div id="loggedInSection" class="mb-4 hidden">
+      <p id="userEmail" class="text-indigo-800 mb-2"></p>
+      <button
+        id="logoutButton"
+        class="w-full bg-red-600 text-white py-2 rounded hover:bg-red-700 transition duration-200 ease-in-out"
+      >
+        Logout
+      </button>
+    </div>
+
+    <div id="statusBar" class="mb-4 p-2 rounded-lg text-sm flex items-center hidden">
+      <svg
+        id="statusIcon"
+        class="w-5 h-5 mr-2"
+        xmlns="http://www.w3.org/2000/svg"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+      >
+        <!-- Icon will be set dynamically -->
+      </svg>
+      <span id="statusMessage"></span>
+    </div>
+
+    <script src="styles.js"></script>
+    <script src="login.js"></script>
+  </body>
+</html>

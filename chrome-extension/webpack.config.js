@@ -6,6 +6,7 @@ module.exports = {
     popup: './src/popup.ts',
     background: './src/background.ts',
     content: './src/content.ts',
+    login: './src/login.ts',
     styles: './src/styles.css',
     options: './src/options.ts',
     toast: './src/toast.ts',
