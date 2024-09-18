@@ -1,0 +1,63 @@
+# Python cache files
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environment
+venv/
+env/
+.env
+
+# Development and IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Git related
+.git/
+.gitignore
+
+# Docker related
+Dockerfile
+docker-compose.yml
+
+# Log files
+*.log
+
+# Test files
+test/
+tests/
+
+# Documentation
+docs/
+*.md
+
+# Temporary files
+*.tmp
+*.bak
+
+# Database files
+*.db
+*.sqlite3
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Dependency directories
+node_modules/
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Coverage reports
+htmlcov/
+.coverage
+.coverage.*

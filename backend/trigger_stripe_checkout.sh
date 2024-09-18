@@ -6,7 +6,7 @@ generate_random_email() {
 }
 
 # Set your variables
-PRICE_ID=$(grep UNTAB_PRICE_ID .env | cut -d '=' -f2)
+PRICE_ID=$(grep STRIPE_UNTAB_PRICE_ID .env | cut -d '=' -f2)
 SUCCESS_URL="https://example.com/success"
 CANCEL_URL="https://example.com/cancel"
 STRIPE_SECRET_KEY=$(grep STRIPE_SECRET_KEY .env | cut -d '=' -f2)

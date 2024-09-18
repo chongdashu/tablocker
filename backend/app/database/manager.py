@@ -8,11 +8,11 @@ from database.models import Base
 
 load_dotenv()
 
-DATABASE_URL = os.environ.get("DATABASE_URL")
-if DATABASE_URL is None:
-    raise ValueError("DATABASE_URL environment variable is not set")
+POSTGRES_DATABASE_URL = os.environ.get("POSTGRES_DATABASE_URL")
+if POSTGRES_DATABASE_URL is None:
+    raise ValueError("POSTGRES_DATABASE_URL environment variable is not set")
 
-engine = create_engine(DATABASE_URL)
+engine = create_engine(POSTGRES_DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
