@@ -77,5 +77,92 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
         db.commit()
         logger.info("Database updated successfully")
 
+    # Handle the customer.subscription.deleted event
+    elif event["type"] == "customer.subscription.deleted":
+        logger.info("Processing customer.subscription.deleted event")
+        subscription = event["data"]["object"]
+        customer_id = subscription["customer"]
+
+        # Retrieve the customer to get their email
+        customer = stripe.Customer.retrieve(customer_id)
+        customer_email = customer["email"]
+        logger.info(f"Customer email: {customer_email}")
+
+        # Update the PayingUser entry
+        paying_user = db.query(PayingUser).filter(PayingUser.email == customer_email).first()
+        if paying_user:
+            logger.info(f"Updating user subscription status: {customer_email}")
+            paying_user.is_paying = False
+            db.commit()
+            logger.info("Database updated successfully")
+        else:
+            logger.warning(f"No paying user found for email: {customer_email}")
+
+    # Handle the customer.subscription.updated event
+    elif event["type"] == "customer.subscription.updated":
+        logger.info("Processing customer.subscription.updated event")
+        subscription = event["data"]["object"]
+        customer_id = subscription["customer"]
+
+        # Retrieve the customer to get their email
+        customer = stripe.Customer.retrieve(customer_id)
+        customer_email = customer["email"]
+        logger.info(f"Customer email: {customer_email}")
+
+        # Update the PayingUser entry
+        paying_user = db.query(PayingUser).filter(PayingUser.email == customer_email).first()
+        if paying_user:
+            logger.info(f"Updating user subscription status: {customer_email}")
+            paying_user.is_paying = subscription["status"] == "active"
+            db.commit()
+            logger.info("Database updated successfully")
+        else:
+            logger.warning(f"No paying user found for email: {customer_email}")
+
+    # Handle the charge.refunded event
+    elif event["type"] == "charge.refunded":
+        logger.info("Processing charge.refunded event")
+        charge = event["data"]["object"]
+        customer_id = charge["customer"]
+
+        # Retrieve the customer to get their email
+        customer = stripe.Customer.retrieve(customer_id)
+        customer_email = customer["email"]
+        logger.info(f"Customer email: {customer_email}")
+
+        # Update the PayingUser entry
+        paying_user = db.query(PayingUser).filter(PayingUser.email == customer_email).first()
+        if paying_user:
+            logger.info(f"Updating user payment status due to refund: {customer_email}")
+            paying_user.is_paying = False
+            db.commit()
+            logger.info("Database updated successfully")
+        else:
+            logger.warning(f"No paying user found for email: {customer_email}")
+
+    # Handle the invoice.payment_failed event
+    elif event["type"] == "invoice.payment_failed":
+        logger.info("Processing invoice.payment_failed event")
+        invoice = event["data"]["object"]
+        customer_id = invoice["customer"]
+
+        # Retrieve the customer to get their email
+        customer = stripe.Customer.retrieve(customer_id)
+        customer_email = customer["email"]
+        logger.info(f"Customer email: {customer_email}")
+
+        # Update the PayingUser entry
+        paying_user = db.query(PayingUser).filter(PayingUser.email == customer_email).first()
+        if paying_user:
+            logger.info(f"Updating user payment status due to failed payment: {customer_email}")
+            paying_user.is_paying = False
+            db.commit()
+            logger.info("Database updated successfully")
+        else:
+            logger.warning(f"No paying user found for email: {customer_email}")
+
+    else:
+        logger.info(f"Unhandled event type: {event['type']}")
+
     logger.info("Webhook processing completed")
     return {"success": True}
