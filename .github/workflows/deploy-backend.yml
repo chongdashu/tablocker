@@ -1,0 +1,71 @@
+name: CD - Deploy Backend
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy-backend:
+    name: Deploy Backend to Environment
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Build, tag, and push backend image to Amazon ECR
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: untab/backend
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG ./backend
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+
+      - name: Deploy backend to EC2
+        env:
+          PRIVATE_KEY: ${{ secrets.AWS_SSH_PRIVATE_KEY }}
+          HOST: ${{ secrets.AWS_HOST }}
+          USER: ${{ secrets.AWS_USER }}
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: untab/backend
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          echo "$PRIVATE_KEY" > private_key && chmod 600 private_key
+          ssh -i private_key -o StrictHostKeyChecking=no ${USER}@${HOST} '
+            aws ecr get-login-password --region ${{ secrets.AWS_DEFAULT_REGION }} | docker login --username AWS --password-stdin $ECR_REGISTRY
+            docker pull $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+            docker stop untab-backend-app || true
+            docker rm untab-backend-app || true
+            docker run -d --name untab-backend-app \
+              -p ${{ secrets.BACKEND_PORT }}:${{ secrets.BACKEND_PORT }} \
+              -e SUPABASE_URL="${{ secrets.SUPABASE_URL }}" \
+              -e SUPABASE_ANON_KEY="${{ secrets.SUPABASE_ANON_KEY }}" \
+              -e SUPABASE_JWT_PUBLIC_KEY="${{ secrets.SUPABASE_JWT_PUBLIC_KEY }}" \
+              -e RESEND_API_KEY="${{ secrets.RESEND_API_KEY }}" \
+              -e DATABASE_URL="${{ secrets.DATABASE_URL }}" \
+              -e STRIPE_PUBLISHABLE_KEY="${{ secrets.STRIPE_PUBLISHABLE_KEY }}" \
+              -e STRIPE_SECRET_KEY="${{ secrets.STRIPE_SECRET_KEY }}" \
+              -e STRIPE_WEBHOOK_SECRET="${{ secrets.STRIPE_WEBHOOK_SECRET }}" \
+              -e UNTAB_PRICE_ID="${{ secrets.UNTAB_PRICE_ID }}" \
+              $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          '
+          rm private_key
+
+      - name: Verify Backend Deployment
+        run: |
+          echo "Verifying backend deployment..."
+          curl -sSf http://${{ secrets.AWS_HOST }}:${{ secrets.BACKEND_PORT }}/health
