@@ -78,6 +78,13 @@ jobs:
 
             echo "Starting new containers with updated environment variables..."
 
+            SUPABASE_URL=${{ secrets.SUPABASE_URL }} \
+            SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }} \
+            SUPABASE_JWT_PUBLIC_KEY=${{ secrets.SUPABASE_JWT_PUBLIC_KEY }} \
+            STRIPE_PUBLISHABLE_KEY=${{ secrets.STRIPE_PUBLISHABLE_KEY }} \
+            STRIPE_SECRET_KEY=${{ secrets.STRIPE_SECRET_KEY }} \
+            STRIPE_WEBHOOK_SECRET=${{ secrets.STRIPE_WEBHOOK_SECRET }} \
+            STRIPE_UNTAB_PRICE_ID=${{ secrets.STRIPE_UNTAB_PRICE_ID }} \
             ECR_REGISTRY=${{ steps.login-ecr.outputs.registry }} \
             ECR_REPOSITORY_BACKEND=${{ secrets.ECR_REPOSITORY_BACKEND }} \
             IMAGE_TAG=${{ github.sha }} \
