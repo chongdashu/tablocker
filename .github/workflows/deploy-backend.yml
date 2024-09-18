@@ -100,11 +100,11 @@ jobs:
         run: |
 
           echo "Waiting for FastAPI server to start..."
-          sleep 30
+          sleep 10
 
           echo "Verifying external accessibility..."
 
-          if curl -sSf https://untab.xyz/api/health > /dev/null 2>&1; then
+          if curl -sSf https://untab.xyz/api/health/check > /dev/null 2>&1; then
             echo "External HTTPS accessibility verified successfully!"
           else
             echo "Failed to verify external accessibility"
