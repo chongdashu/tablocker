@@ -7,6 +7,12 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: "Branch to deploy"
+        required: true
+        default: "main"
 
 jobs:
   deploy-backend:
@@ -29,43 +35,66 @@ jobs:
       - name: Build, tag, and push backend image to Amazon ECR
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: untab/backend
+          ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY_BACKEND }}
           IMAGE_TAG: ${{ github.sha }}
         run: |
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG ./backend
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
-      - name: Deploy backend to EC2
+      - name: Copy docker-compose.yml and nginx configurations to EC2
         env:
-          PRIVATE_KEY: ${{ secrets.AWS_SSH_PRIVATE_KEY }}
-          HOST: ${{ secrets.AWS_HOST }}
-          USER: ${{ secrets.AWS_USER }}
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: untab/backend
-          IMAGE_TAG: ${{ github.sha }}
+          PRIVATE_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+          AWS_HOST: ${{ secrets.AWS_HOST }}
+          AWS_USER: ${{ secrets.AWS_USER }}
+          PROJECT_ROOT: /home/${{ secrets.AWS_USER }}/untab
         run: |
           echo "$PRIVATE_KEY" > private_key && chmod 600 private_key
-          ssh -i private_key -o StrictHostKeyChecking=no ${USER}@${HOST} '
-            aws ecr get-login-password --region ${{ secrets.AWS_DEFAULT_REGION }} | docker login --username AWS --password-stdin $ECR_REGISTRY
-            docker pull $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-            docker stop untab-backend-app || true
-            docker rm untab-backend-app || true
-            docker run -d --name untab-backend-app \
-              -p ${{ secrets.BACKEND_PORT }}:${{ secrets.BACKEND_PORT }} \
-              -e SUPABASE_URL="${{ secrets.SUPABASE_URL }}" \
-              -e SUPABASE_ANON_KEY="${{ secrets.SUPABASE_ANON_KEY }}" \
-              -e SUPABASE_JWT_PUBLIC_KEY="${{ secrets.SUPABASE_JWT_PUBLIC_KEY }}" \
-              -e RESEND_API_KEY="${{ secrets.RESEND_API_KEY }}" \
-              -e DATABASE_URL="${{ secrets.DATABASE_URL }}" \
-              -e STRIPE_PUBLISHABLE_KEY="${{ secrets.STRIPE_PUBLISHABLE_KEY }}" \
-              -e STRIPE_SECRET_KEY="${{ secrets.STRIPE_SECRET_KEY }}" \
-              -e STRIPE_WEBHOOK_SECRET="${{ secrets.STRIPE_WEBHOOK_SECRET }}" \
-              -e UNTAB_PRICE_ID="${{ secrets.UNTAB_PRICE_ID }}" \
-              $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          scp -o StrictHostKeyChecking=no -i private_key docker-compose.yml $AWS_USER@$AWS_HOST:$PROJECT_ROOT/docker-compose.yml
+          scp -o StrictHostKeyChecking=no -i private_key nginx.conf $AWS_USER@$AWS_HOST:$PROJECT_ROOT/nginx.conf
+          scp -o StrictHostKeyChecking=no -i private_key default.conf $AWS_USER@$AWS_HOST:$PROJECT_ROOT/default.conf
+
+      - name: Deploy to EC2
+        env:
+          PRIVATE_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+        run: |
+          echo "$PRIVATE_KEY" > private_key && chmod 600 private_key
+          ssh -o StrictHostKeyChecking=no -i private_key ${AWS_USER}@${AWS_HOST} '
+            cd ${{ env.PROJECT_ROOT }} || mkdir -p ${{ env.PROJECT_ROOT }} && cd ${{ env.PROJECT_ROOT }};
+
+            echo "Setting AWS environment variables..."
+            export AWS_ACCESS_KEY_ID=${{secrets.AWS_ACCESS_KEY_ID}}
+            export AWS_SECRET_ACCESS_KEY=${{secrets.AWS_SECRET_ACCESS_KEY}}
+            export AWS_DEFAULT_REGION=${{secrets.AWS_DEFAULT_REGION}}
+
+            echo "Logging into AWS ECR..."
+            aws ecr get-login-password --region ${{ secrets.AWS_DEFAULT_REGION }} | docker login --username AWS --password-stdin  ${{ steps.login-ecr.outputs.registry }}
+
+            echo "Stopping and removing existing containers..."
+            docker-compose down
+
+            echo "Starting new containers with updated environment variables..."
+
+            ECR_REGISTRY=${{ steps.login-ecr.outputs.registry }} \
+            ECR_REPOSITORY_BACKEND=${{ secrets.ECR_REPOSITORY_BACKEND }} \
+            IMAGE_TAG=${{ github.sha }} \
+            AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }} \
+            AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }} \
+            AWS_DEFAULT_REGION=${{ secrets.AWS_DEFAULT_REGION }} \
+            docker-compose up -d
           '
           rm private_key
 
-      - name: Verify Backend Deployment
+      - name: Verify External Accessibility
         run: |
-          echo "Verifying backend deployment..."
-          curl -sSf http://${{ secrets.AWS_HOST }}:${{ secrets.BACKEND_PORT }}/health
+
+          echo "Waiting for FastAPI server to start..."
+          sleep 30
+
+          echo "Verifying external accessibility..."
+
+          if curl -sSf https://untab.xyz/api/health > /dev/null 2>&1; then
+            echo "External HTTPS accessibility verified successfully!"
+          else
+            echo "Failed to verify external accessibility"
+            exit 1
+          fi
