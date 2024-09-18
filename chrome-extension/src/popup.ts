@@ -24,42 +24,39 @@ document.addEventListener('DOMContentLoaded', async () => {
   const logoutButton = document.getElementById('logoutButton') as HTMLButtonElement;
   const statusBar = document.getElementById('statusBar') as HTMLDivElement;
 
+  const profileButton = document.getElementById('profileButton') as HTMLButtonElement;
+
   // Load the stored token if available
   const storedToken = localStorage.getItem('token');
   if (storedToken) {
     try {
       const response = await axios.get(`${BASE_URL}/api/auth/session`, {
         headers: {
-          Authorization: `Bearer ${storedToken}`, // Include token in headers
+          Authorization: `Bearer ${storedToken}`,
         },
         withCredentials: true,
       });
       if (response.data.email) {
-        // Adjust based on your SessionResponse structure
-        authSection.classList.add('hidden');
-        logoutButton.classList.remove('hidden');
+        // logoutButton.classList.remove('hidden');
         const isPaid = await isPaidUser();
         if (isPaid) {
           proStatus.classList.remove('hidden');
         } else {
           proStatus.classList.add('hidden');
         }
-        setStatus('Logged in successfully', 'success');
+        setStatus('Logged in as ' + response.data.email, 'success');
       } else {
-        authSection.classList.remove('hidden');
         logoutButton.classList.add('hidden');
         proStatus.classList.add('hidden');
         setStatus('Please log in to access all features', 'info');
       }
     } catch (error) {
       console.error('Session check error:', error);
-      authSection.classList.remove('hidden');
       logoutButton.classList.add('hidden');
       proStatus.classList.add('hidden');
       setStatus('Unable to check login status. Please try again later.' + error, 'error');
     }
   } else {
-    authSection.classList.remove('hidden');
     logoutButton.classList.add('hidden');
     proStatus.classList.add('hidden');
     setStatus('Please log in to access all features', 'info');
@@ -365,6 +362,17 @@ document.addEventListener('DOMContentLoaded', async () => {
   updateCurrentDomainInfo();
 
   renderPatternList();
+
+  profileButton.addEventListener('click', openLoginPopup);
+
+  function openLoginPopup() {
+    chrome.windows.create({
+      url: chrome.runtime.getURL('login.html'),
+      type: 'popup',
+      width: 400,
+      height: 600,
+    });
+  }
 });
 
 function setStatus(message: string, type: 'error' | 'success' | 'info') {

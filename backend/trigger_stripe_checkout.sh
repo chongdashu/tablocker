@@ -55,4 +55,40 @@ echo "Checkout Session ID: $SESSION_ID"
 
 # Trigger the checkout.session.completed event
 echo "Triggering checkout.session.completed event..."
-stripe trigger checkout.session.completed
+TRIGGER_RESPONSE=$(stripe trigger checkout.session.completed)
+
+# Log the trigger response
+echo "Trigger Response:"
+echo "$TRIGGER_RESPONSE"
+
+# Extract the event ID from the trigger response
+EVENT_ID=$(echo "$TRIGGER_RESPONSE" | grep -o '"id": "[^"]*' | cut -d'"' -f4)
+
+if [ -z "$EVENT_ID" ]; then
+  echo "Failed to extract event ID from trigger response"
+  exit 1
+fi
+
+echo "Event ID: $EVENT_ID"
+
+# Retrieve and display the full event data
+echo "Full event data:"
+stripe events retrieve "$EVENT_ID"
+
+# Extract and log the customer email from the event data
+EVENT_DATA=$(stripe events retrieve "$EVENT_ID" --expand data.object)
+TRIGGERED_EMAIL=$(echo "$EVENT_DATA" | jq -r '.data.object.customer_email')
+echo "Triggered customer email: $TRIGGERED_EMAIL"
+
+# Compare the original email with the triggered email
+if [ "$CUSTOMER_EMAIL" = "$TRIGGERED_EMAIL" ]; then
+  echo "Customer email matched successfully"
+else
+  echo "Warning: Customer email mismatch"
+  echo "Original email: $CUSTOMER_EMAIL"
+  echo "Triggered email: $TRIGGERED_EMAIL"
+fi
+
+# Add this line to see the full event data
+echo "Full event data:"
+stripe events retrieve $(echo "$TRIGGER_RESPONSE" | grep -o '"id": "[^"]*' | cut -d'"' -f4)
