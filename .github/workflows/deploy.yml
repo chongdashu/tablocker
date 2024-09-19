@@ -1,4 +1,4 @@
-name: CD - Deploy Backend
+name: Deploy - Backend and Frontend
 
 on:
   pull_request:
@@ -39,6 +39,15 @@ jobs:
           IMAGE_TAG: ${{ github.sha }}
         run: |
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG ./backend
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+
+      - name: Build, tag, and push backend image to Amazon ECR
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY_FRONTEND }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG ./frontend
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
       - name: Copy docker-compose.yml and nginx configurations to EC2
@@ -96,7 +105,7 @@ jobs:
           '
           rm private_key
 
-      - name: Verify External Accessibility
+      - name: Verify External Accessibility - Backend API
         run: |
 
           echo "Waiting for FastAPI server to start..."
@@ -110,3 +119,9 @@ jobs:
             echo "Failed to verify external accessibility"
             exit 1
           fi
+
+      - name: Verify External Accessibility - Frontend Website
+        run: |
+          echo "Verifying external accessibility..."
+          if curl -sSf https://untab.xyz > /dev/null 2>&1; then
+            echo "External HTTPS accessibility verified successfully!"
