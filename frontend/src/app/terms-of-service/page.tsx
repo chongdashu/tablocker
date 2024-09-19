@@ -7,9 +7,9 @@ const TermsOfService = () => {
       <section className="mb-6">
         <h2 className="text-2xl font-semibold mb-3">1. Acceptance of Terms</h2>
         <p>
-          By accessing or using Un-Tab ("the Service"), you agree to be bound by
-          these Terms of Service. If you disagree with any part of the terms,
-          you may not access the Service.
+          By accessing or using Un-Tab (&quot;the Service&quot;), you agree to
+          be bound by these Terms of Service. If you disagree with any part of
+          the terms, you may not access the Service.
         </p>
       </section>
 
@@ -71,8 +71,8 @@ const TermsOfService = () => {
         <h2 className="text-2xl font-semibold mb-3">7. Changes to Terms</h2>
         <p>
           We reserve the right to modify or replace these Terms at any time. If
-          a revision is material, we will provide at least 30 days' notice prior
-          to any new terms taking effect.
+          a revision is material, we will provide at least 30 days&apos; notice
+          prior to any new terms taking effect.
         </p>
       </section>
 
