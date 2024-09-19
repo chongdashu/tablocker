@@ -7,10 +7,11 @@ const PrivacyPolicy = () => {
       <section className="mb-6">
         <h2 className="text-2xl font-semibold mb-3">1. Introduction</h2>
         <p>
-          Welcome to Un-Tab ("we", "our", or "us"). We are committed to
-          protecting your personal information and your right to privacy. This
-          Privacy Policy explains how we collect, use, disclose, and safeguard
-          your information when you use our browser extension and website.
+          Welcome to Un-Tab (&quot;we&quot;, &quot;our&quot;, or
+          &quot;us&quot;). We are committed to protecting your personal
+          information and your right to privacy. This Privacy Policy explains
+          how we collect, use, disclose, and safeguard your information when you
+          use our browser extension and website.
         </p>
       </section>
 
@@ -69,7 +70,7 @@ const PrivacyPolicy = () => {
         <p>
           We may update our Privacy Policy from time to time. We will notify you
           of any changes by posting the new Privacy Policy on this page and
-          updating the "Last updated" date.
+          updating the &quot;Last updated&quot; date.
         </p>
       </section>
 
