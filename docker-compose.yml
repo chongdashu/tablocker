@@ -15,6 +15,13 @@ services:
     volumes:
       - /etc/letsencrypt:/etc/letsencrypt:ro
 
+  frontend:
+    image: nginx:alpine
+    volumes:
+      - ./frontend:/usr/share/nginx/html:ro
+    expose:
+      - "80"
+
   nginx:
     image: nginx:alpine
     ports:
@@ -26,6 +33,7 @@ services:
       - /etc/letsencrypt:/etc/letsencrypt:ro
     depends_on:
       - backend
+      - frontend
 
 volumes:
   letsencrypt:

@@ -1,4 +1,4 @@
-name: Chrome Extension CD
+name: Build - Chrome Extension
 
 on:
   pull_request:
