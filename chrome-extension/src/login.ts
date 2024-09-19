@@ -89,6 +89,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       localStorage.setItem('token', data.access_token);
       const isPaid = await isPaidUser();
       setStatus('Login successful!', 'success');
+      chrome.runtime.sendMessage({ action: 'login_success' });
       setTimeout(() => {
         window.close();
       }, 1000);
@@ -139,6 +140,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       localStorage.removeItem('token');
       showLoggedOutState();
       setStatus('Logged out successfully', 'success');
+      chrome.runtime.sendMessage({ action: 'logout_success' });
     } catch (error: any) {
       console.error('Logout error:', error.response?.data?.message || error.message);
       setStatus('Logout Error: ' + (error.response?.data?.message || 'Please try again.'), 'error');

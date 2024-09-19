@@ -268,6 +268,19 @@ document.addEventListener('DOMContentLoaded', async () => {
       height: 600,
     });
   }
+
+  // Add this message listener
+  chrome.runtime.onMessage.addListener(message => {
+    if (message.action === 'login_success' || message.action === 'logout_success') {
+      const storedToken = localStorage.getItem('token');
+      if (storedToken) {
+        checkSession(storedToken);
+      } else {
+        setStatus('Please log in to access all features', 'info');
+      }
+      renderUI();
+    }
+  });
 });
 
 function setStatus(message: string, type: 'error' | 'success' | 'info') {
