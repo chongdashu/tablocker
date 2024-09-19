@@ -123,5 +123,9 @@ jobs:
       - name: Verify External Accessibility - Frontend Website
         run: |
           echo "Verifying external accessibility..."
-          if curl -sSf https://untab.xyz > /dev/null 2>&1; then
+          if curl -sSf https://untab.xyz/api/health/check > /dev/null 2>&1; then
             echo "External HTTPS accessibility verified successfully!"
+          else
+            echo "Failed to verify external accessibility"
+            exit 1
+          fi

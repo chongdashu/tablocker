@@ -16,11 +16,9 @@ services:
       - /etc/letsencrypt:/etc/letsencrypt:ro
 
   frontend:
-    image: nginx:alpine
-    volumes:
-      - ./frontend:/usr/share/nginx/html:ro
+    image: ${ECR_REGISTRY}/${ECR_REPOSITORY_FRONTEND}:${IMAGE_TAG}
     expose:
-      - "80"
+      - "3000"
 
   nginx:
     image: nginx:alpine
