@@ -4,6 +4,8 @@ import './styles.css';
 import { BlockedSite } from './types';
 import { isPaidUser, matchesWildcard } from './utils';
 
+const REQUEST_TIMEOUT = 5000; // 5 seconds timeout
+
 document.addEventListener('DOMContentLoaded', async () => {
   const urlPatternInput = document.getElementById('urlPattern') as HTMLInputElement;
   const addPatternButton = document.getElementById('addPattern') as HTMLButtonElement;
@@ -29,15 +31,24 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Load the stored token if available
   const storedToken = localStorage.getItem('token');
   if (storedToken) {
+    checkSession(storedToken);
+  } else {
+    logoutButton.classList.add('hidden');
+    proStatus.classList.add('hidden');
+    setStatus('Please log in to access all features', 'info');
+  }
+
+  async function checkSession(token: string) {
     try {
       const response = await axios.get(`${BASE_URL}/api/auth/session`, {
         headers: {
-          Authorization: `Bearer ${storedToken}`,
+          Authorization: `Bearer ${token}`,
         },
         withCredentials: true,
+        timeout: REQUEST_TIMEOUT,
       });
+
       if (response.data.email) {
-        // logoutButton.classList.remove('hidden');
         const isPaid = await isPaidUser();
         if (isPaid) {
           proStatus.classList.remove('hidden');
@@ -46,117 +57,22 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         setStatus('Logged in as ' + response.data.email, 'success');
       } else {
-        logoutButton.classList.add('hidden');
-        proStatus.classList.add('hidden');
-        setStatus('Please log in to access all features', 'info');
+        handleSessionCheckFailure();
       }
     } catch (error) {
       console.error('Session check error:', error);
-      logoutButton.classList.add('hidden');
-      proStatus.classList.add('hidden');
-      setStatus('Unable to check login status. Please try again later.' + error, 'error');
+      handleSessionCheckFailure(error);
     }
-  } else {
-    logoutButton.classList.add('hidden');
-    proStatus.classList.add('hidden');
-    setStatus('Please log in to access all features', 'info');
   }
 
-  loginButton.addEventListener('click', async () => {
-    setLoading('loginButton', true);
-    const emailInput = document.getElementById('email') as HTMLInputElement;
-    const passwordInput = document.getElementById('password') as HTMLInputElement;
-
-    if (!emailInput || !passwordInput) {
-      setStatus('Email or password input not found', 'error');
-      setLoading('loginButton', false);
-      return;
-    }
-
-    const email = emailInput.value.trim();
-    const password = passwordInput.value;
-
-    if (!email || !password) {
-      setStatus('Please enter both email and password', 'error');
-      setLoading('loginButton', false);
-      return;
-    }
-    try {
-      const params = new URLSearchParams();
-      params.append('username', email);
-      params.append('password', password);
-
-      const { data } = await axios.post(`${BASE_URL}/api/auth/login`, params, {
-        withCredentials: true,
-      });
-      setLoading('loginButton', false);
-      localStorage.setItem('token', data.access_token); // Store the token
-      authSection.classList.add('hidden');
-      logoutButton.classList.remove('hidden');
-      const isPaid = await isPaidUser();
-      if (isPaid) {
-        proStatus.classList.remove('hidden');
-      } else {
-        proStatus.classList.add('hidden');
-      }
-      setStatus('', 'success');
-      renderPatternList();
-    } catch (error: any) {
-      setLoading('loginButton', false);
-      console.error(error);
-      console.error('Login error:', error.response?.data?.detail || error.message);
-      setStatus(
-        'Login Error: ' + (error.response?.data?.detail || error.message || 'Please try again.'),
-        'error'
-      );
-    }
-  });
-
-  signupButton.addEventListener('click', async () => {
-    setLoading('signupButton', true);
-    const email = (document.getElementById('email') as HTMLInputElement).value;
-    const password = (document.getElementById('password') as HTMLInputElement).value;
-
-    try {
-      const { data } = await axios.post(
-        `${BASE_URL}/api/auth/register`,
-        { username: email, password: password },
-        { withCredentials: true }
-      );
-      setLoading('signupButton', false);
-      localStorage.setItem('token', data.access_token); // Store the token if returned
-      setStatus('Signup successful! Please verify your email.', 'success');
-    } catch (error: any) {
-      setLoading('signupButton', false);
-      console.error(error);
-      console.error('Signup error:', error.response?.data?.detail || error.message);
-      setStatus('Signup Error: ' + (error.response?.data?.detail || 'Please try again.'), 'error');
-    }
-  });
-
-  logoutButton.addEventListener('click', async () => {
-    try {
-      const token = localStorage.getItem('token'); // Retrieve the token
-      await axios.post(
-        `${BASE_URL}/api/auth/logout`,
-        {},
-        {
-          headers: {
-            Authorization: `Bearer ${token}`, // Include token in headers
-          },
-          withCredentials: true,
-        }
-      );
-      localStorage.removeItem('token'); // Remove the token on logout
-      authSection.classList.remove('hidden');
-      logoutButton.classList.add('hidden');
-      proStatus.classList.add('hidden');
-      setStatus('Logged out successfully', 'success');
-    } catch (error: any) {
-      console.error('Logout error:', error.response?.data?.message || error.message);
-      setStatus('Logout Error: ' + (error.response?.data?.message || 'Please try again.'), 'error');
-    }
-  });
+  function handleSessionCheckFailure(error?: any) {
+    localStorage.removeItem('token');
+    logoutButton.classList.add('hidden');
+    proStatus.classList.add('hidden');
+    const errorMessage =
+      error?.response?.data?.detail || error?.message || 'Unknown error occurred';
+    setStatus(`Unable to verify login status. ${errorMessage}.`, 'error');
+  }
 
   // Load the current state
   chrome.storage.local.get('isBlocking', result => {
@@ -225,46 +141,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
-  addPatternButton.addEventListener('click', addPattern);
-
-  function addPattern() {
-    const pattern = urlPatternInput.value.trim();
-    if (pattern) {
-      chrome.storage.local.get('blockedSites', (data: { blockedSites?: BlockedSite[] }) => {
-        const blockedSites: BlockedSite[] = data.blockedSites || [];
-        blockedSites.push({ pattern, createdAt: new Date().toISOString() });
-        chrome.storage.local.set({ blockedSites }, () => {
-          urlPatternInput.value = '';
-          renderPatternList();
-        });
-      });
-    }
-  }
-
-  async function updatePatternCounter(count: number) {
-    const isPaid = await isPaidUser();
-    if (patternCounter) {
-      patternCounter.textContent = isPaid ? `${count}` : `${count}/5`;
-    }
-
-    const addPatternButton = document.getElementById('addPattern') as HTMLButtonElement;
-    const urlPatternInput = document.getElementById('urlPattern') as HTMLInputElement;
-
-    if (!isPaid && count >= 5) {
-      addPatternButton.disabled = true;
-      addPatternButton.innerHTML = '🔒 Go Pro for Unlimited Blocked Patterns';
-      addPatternButton.classList.add('bg-gray-400', 'cursor-not-allowed');
-      addPatternButton.classList.remove('bg-indigo-600', 'hover:bg-indigo-700');
-      urlPatternInput.disabled = true;
-      urlPatternInput.classList.add('bg-gray-100', 'cursor-not-allowed');
-    } else {
-      addPatternButton.disabled = false;
-      addPatternButton.textContent = 'Add Pattern';
-      addPatternButton.classList.remove('bg-gray-400', 'cursor-not-allowed');
-      addPatternButton.classList.add('bg-indigo-600', 'hover:bg-indigo-700');
-      urlPatternInput.disabled = false;
-      urlPatternInput.classList.remove('bg-gray-100', 'cursor-not-allowed');
-    }
+  function renderUI() {
+    chrome.storage.local.get('isBlocking', result => {
+      const isBlocking = result.isBlocking !== false; // Default to true if not set
+      updateToggleUI(isBlocking);
+      updateStatusIndicator(isBlocking);
+    });
+    updateCurrentDomainInfo();
+    renderPatternList();
   }
 
   function renderPatternList() {
@@ -284,21 +168,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         patternList.appendChild(li);
       });
       addRemoveListeners();
-      updateCurrentDomainInfo();
-    });
-  }
-
-  function addRemoveListeners() {
-    const removeButtons = document.querySelectorAll('[data-index]');
-    removeButtons.forEach(button => {
-      button.addEventListener('click', e => {
-        const index = parseInt((e.target as HTMLButtonElement).getAttribute('data-index')!);
-        chrome.storage.local.get('blockedSites', (data: { blockedSites?: BlockedSite[] }) => {
-          const blockedSites: BlockedSite[] = data.blockedSites || [];
-          blockedSites.splice(index, 1);
-          chrome.storage.local.set({ blockedSites }, renderPatternList);
-        });
-      });
     });
   }
 
@@ -328,7 +197,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             blockStatus.classList.remove('bg-red-100', 'text-red-800');
             quickBlockButton.classList.remove('hidden');
 
-            // Add this line to set up the click event listener
             quickBlockButton.onclick = () => quickBlockDomain(domain);
           }
         });
@@ -337,6 +205,43 @@ document.addEventListener('DOMContentLoaded', async () => {
         blockStatus.textContent = '';
         quickBlockButton.classList.add('hidden');
       }
+    });
+  }
+
+  async function updatePatternCounter(count: number) {
+    const isPaid = await isPaidUser();
+    if (patternCounter) {
+      patternCounter.textContent = isPaid ? `${count}` : `${count}/5`;
+    }
+
+    if (!isPaid && count >= 5) {
+      addPatternButton.disabled = true;
+      addPatternButton.innerHTML = '🔒 Go Pro for Unlimited Blocked Patterns';
+      addPatternButton.classList.add('bg-gray-400', 'cursor-not-allowed');
+      addPatternButton.classList.remove('bg-indigo-600', 'hover:bg-indigo-700');
+      urlPatternInput.disabled = true;
+      urlPatternInput.classList.add('bg-gray-100', 'cursor-not-allowed');
+    } else {
+      addPatternButton.disabled = false;
+      addPatternButton.textContent = 'Add Pattern';
+      addPatternButton.classList.remove('bg-gray-400', 'cursor-not-allowed');
+      addPatternButton.classList.add('bg-indigo-600', 'hover:bg-indigo-700');
+      urlPatternInput.disabled = false;
+      urlPatternInput.classList.remove('bg-gray-100', 'cursor-not-allowed');
+    }
+  }
+
+  function addRemoveListeners() {
+    const removeButtons = document.querySelectorAll('[data-index]');
+    removeButtons.forEach(button => {
+      button.addEventListener('click', e => {
+        const index = parseInt((e.target as HTMLButtonElement).getAttribute('data-index')!);
+        chrome.storage.local.get('blockedSites', (data: { blockedSites?: BlockedSite[] }) => {
+          const blockedSites: BlockedSite[] = data.blockedSites || [];
+          blockedSites.splice(index, 1);
+          chrome.storage.local.set({ blockedSites }, renderPatternList);
+        });
+      });
     });
   }
 
@@ -351,17 +256,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
-  const isPaid = await isPaidUser();
-
-  if (isPaid) {
-    proStatus.classList.remove('hidden');
-  } else {
-    proStatus.classList.add('hidden');
-  }
-
-  updateCurrentDomainInfo();
-
-  renderPatternList();
+  renderUI();
 
   profileButton.addEventListener('click', openLoginPopup);
 
@@ -416,21 +311,5 @@ function setStatus(message: string, type: 'error' | 'success' | 'info') {
   } else {
     statusBar.classList.add('hidden');
     statusMessage.textContent = '';
-  }
-}
-
-function setLoading(buttonId: string, isLoading: boolean) {
-  const button = document.getElementById(buttonId) as HTMLButtonElement;
-  const spinner = document.getElementById(`${buttonId}Spinner`) as SVGElement | null;
-  const buttonText = button.querySelector('span');
-
-  if (isLoading) {
-    button.disabled = true;
-    spinner?.classList.remove('hidden');
-    buttonText!.textContent = buttonId === 'loginButton' ? 'Logging in...' : 'Signing up...';
-  } else {
-    button.disabled = false;
-    spinner?.classList.add('hidden');
-    buttonText!.textContent = buttonId === 'loginButton' ? 'Login' : 'Sign Up';
   }
 }
