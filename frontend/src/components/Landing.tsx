@@ -95,7 +95,12 @@ export function LandingComponent() {
           >
             Keep your Focus,
             <br />
-            Un-Tab your Distractions
+            <span className="relative">
+              <span className="bottom-0 left-0 w-full h-3 bg-purple-300 text-whiteopacity-50">
+                Un-Tab
+              </span>{" "}
+              your Distractions
+            </span>
           </motion.h1>
           <motion.p
             className="text-xl mb-8 max-w-2xl mx-auto"
