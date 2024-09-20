@@ -14,11 +14,25 @@ services:
       - POSTGRES_DATABASE_URL=${POSTGRES_DATABASE_URL}
     volumes:
       - /etc/letsencrypt:/etc/letsencrypt:ro
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50" # 50% of a CPU core
+          memory: 512M # 512 MB memory
+        reservations:
+          memory: 256M # 256 MB memory reservation
 
   frontend:
     image: ${ECR_REGISTRY}/${ECR_REPOSITORY_FRONTEND}:${IMAGE_TAG}
     expose:
       - "3000"
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50" # 50% of a CPU core
+          memory: 512M # 512 MB memory
+        reservations:
+          memory: 256M # 256 MB memory reservation
 
   nginx:
     image: nginx:alpine
@@ -32,6 +46,13 @@ services:
     depends_on:
       - backend
       - frontend
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25" # 25% of a CPU core
+          memory: 256M # 256 MB memory
+        reservations:
+          memory: 128M # 128 MB memory reservation
 
 volumes:
   letsencrypt:
