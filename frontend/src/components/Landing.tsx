@@ -286,6 +286,8 @@ export function LandingComponent() {
                   "Basic analytics",
                 ],
                 cta: "Install to Chrome",
+                ctaLink:
+                  "https://chromewebstore.google.com/detail/productivity-enforcer/ckhdpoeddfocfjinehpedlbcihjjmopn?hl=en",
                 popular: false,
               },
               {
@@ -301,6 +303,7 @@ export function LandingComponent() {
                   "Early access to new features",
                 ],
                 cta: "Go Pro",
+                ctaLink: "https://buy.stripe.com/test_3cs4go6HJ8Xs0Fi000",
                 popular: true,
               },
             ].map((plan, index) => (
@@ -352,6 +355,7 @@ export function LandingComponent() {
                       ? "bg-purple-600 hover:bg-purple-700 text-white"
                       : "bg-gray-500 hover:bg-gray-600 text-white"
                   }`}
+                  onClick={() => (window.location.href = plan.ctaLink)}
                 >
                   {plan.cta}
                   {plan.popular && <Zap className="ml-2 h-4 w-4" />}
