@@ -120,6 +120,12 @@ export function LandingComponent() {
             <Button
               size="lg"
               className="bg-purple-600 hover:bg-purple-700 text-white"
+              onClick={() =>
+                window.open(
+                  "https://chromewebstore.google.com/detail/productivity-enforcer/ckhdpoeddfocfjinehpedlbcihjjmopn?hl=en",
+                  "_blank"
+                )
+              }
             >
               <svg
                 className="mr-2 h-4 w-4 text-white"
