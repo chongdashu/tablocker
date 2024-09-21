@@ -11,6 +11,17 @@ document.addEventListener('DOMContentLoaded', async () => {
   const authSection = document.getElementById('authSection') as HTMLDivElement;
   const loggedInSection = document.getElementById('loggedInSection') as HTMLDivElement;
   const userEmail = document.getElementById('userEmail') as HTMLParagraphElement;
+  const rememberEmailCheckbox = document.getElementById('rememberEmail') as HTMLInputElement;
+  const emailInput = document.getElementById('email') as HTMLInputElement;
+
+  // Load remembered email if it exists
+  const rememberedEmail = localStorage.getItem('rememberedEmail');
+  if (rememberedEmail) {
+    if (emailInput) {
+      emailInput.value = rememberedEmail;
+    }
+    rememberEmailCheckbox.checked = true;
+  }
 
   loginButton.addEventListener('click', handleLogin);
   signupButton.addEventListener('click', handleSignup);
@@ -59,7 +70,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   async function handleLogin() {
     setLoading('loginButton', true);
-    const emailInput = document.getElementById('email') as HTMLInputElement;
     const passwordInput = document.getElementById('password') as HTMLInputElement;
 
     if (!emailInput || !passwordInput) {
@@ -75,6 +85,13 @@ document.addEventListener('DOMContentLoaded', async () => {
       setStatus('Please enter both email and password', 'error');
       setLoading('loginButton', false);
       return;
+    }
+
+    // Remember email if checkbox is checked
+    if (rememberEmailCheckbox.checked) {
+      localStorage.setItem('rememberedEmail', email);
+    } else {
+      localStorage.removeItem('rememberedEmail');
     }
 
     try {
