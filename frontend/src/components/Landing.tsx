@@ -464,15 +464,6 @@ export function LandingComponent() {
           </a>
         </div>
       </footer>
-
-      {/* Floating element for added visual interest */}
-      <motion.div
-        className="fixed right-0 top-1/2 w-24 h-24 bg-purple-200 rounded-full opacity-50"
-        animate={{
-          y: scrollY * 0.5,
-          rotate: scrollY * 0.2,
-        }}
-      />
     </div>
   );
 }
