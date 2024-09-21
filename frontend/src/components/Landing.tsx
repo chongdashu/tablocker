@@ -9,17 +9,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { motion, useScroll } from "framer-motion";
 import { ArrowRight, Check, Chrome, Play, User, Zap } from "lucide-react";
-import { useEffect, useState } from "react";
 
 export function LandingComponent() {
-  const [scrollY, setScrollY] = useState(0);
   const { scrollYProgress } = useScroll();
-
-  useEffect(() => {
-    const handleScroll = () => setScrollY(window.scrollY);
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
 
   const scrollTo = (id: string) => {
     const element = document.getElementById(id);
@@ -37,24 +29,24 @@ export function LandingComponent() {
             <span className="text-xl font-bold">Un-Tab</span>
           </div>
           <nav className="hidden md:flex items-center space-x-6">
-            <button
+            {/* <button
               onClick={() => scrollTo("why-untab")}
               className="text-gray-600 hover:text-purple-600"
             >
               Why Un-Tab
-            </button>
+            </button> */}
             <button
               onClick={() => scrollTo("how-it-works")}
               className="text-gray-600 hover:text-purple-600"
             >
               How It Works
             </button>
-            <button
+            {/* <button
               onClick={() => scrollTo("testimonials")}
               className="text-gray-600 hover:text-purple-600"
             >
               Testimonials
-            </button>
+            </button> */}
             <button
               onClick={() => scrollTo("pricing")}
               className="text-gray-600 hover:text-purple-600"
