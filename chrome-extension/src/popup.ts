@@ -2,7 +2,13 @@ import axios from 'axios';
 import { BASE_URL } from './config';
 import './styles.css';
 import { BlockedSite } from './types';
-import { getBlockedPatterns, isPaidUser, matchesWildcard, syncBlockedPatterns } from './utils';
+import {
+  getBlockedPatterns,
+  isPaidUser,
+  matchesWildcard,
+  mergePatterns,
+  syncBlockedPatterns,
+} from './utils';
 
 const REQUEST_TIMEOUT = 5000; // 5 seconds timeout
 
@@ -299,20 +305,39 @@ document.addEventListener('DOMContentLoaded', async () => {
           chrome.storage.local.set({ blockedSites: syncedPatterns.blocked_patterns }, resolve);
         });
         renderPatternList();
+        setStatus('Patterns synced successfully', 'success');
+      } else {
+        throw new Error('Sync was not successful');
       }
     } catch (error) {
       console.error('Error syncing patterns:', error);
-      setStatus('Failed to sync patterns', 'error');
+      setStatus(
+        `Failed to sync patterns: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        'error'
+      );
     }
   }
 
   async function loadPatternsFromServer() {
     try {
-      const patterns = await getBlockedPatterns();
+      const serverPatterns = await getBlockedPatterns();
+      const localPatterns = await new Promise<BlockedSite[]>(resolve => {
+        chrome.storage.local.get('blockedSites', result => {
+          resolve(result.blockedSites || []);
+        });
+      });
+
+      const mergedPatterns = mergePatterns(localPatterns, serverPatterns);
+
       await new Promise<void>(resolve => {
-        chrome.storage.local.set({ blockedSites: patterns }, resolve);
+        chrome.storage.local.set({ blockedSites: mergedPatterns }, resolve);
       });
       renderPatternList();
+
+      // If there were local patterns that weren't on the server, sync them back
+      if (mergedPatterns.length > serverPatterns.length) {
+        await syncPatterns();
+      }
     } catch (error) {
       console.error('Error loading patterns from server:', error);
       setStatus('Failed to load patterns from server', 'error');

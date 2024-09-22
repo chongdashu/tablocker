@@ -70,7 +70,8 @@ export async function syncBlockedPatterns(
     });
 
     if (!response.ok) {
-      throw new Error('Failed to sync blocked patterns');
+      const errorData = await response.json();
+      throw new Error(errorData.detail || 'Failed to sync blocked patterns');
     }
 
     return await response.json();
@@ -110,3 +111,26 @@ export async function getBlockedPatterns(): Promise<BlockedSite[]> {
 //     chrome.storage.local.set({ isPaidUser: isPaid }, resolve);
 //   });
 // }
+
+export function mergePatterns(
+  localPatterns: BlockedSite[],
+  serverPatterns: BlockedSite[]
+): BlockedSite[] {
+  const mergedPatterns: BlockedSite[] = [...localPatterns];
+
+  serverPatterns.forEach(serverPattern => {
+    const existingIndex = mergedPatterns.findIndex(p => p.pattern === serverPattern.pattern);
+    if (existingIndex === -1) {
+      mergedPatterns.push(serverPattern);
+    } else {
+      // If the pattern exists locally, keep the newer one based on createdAt
+      const localCreatedAt = new Date(mergedPatterns[existingIndex].createdAt);
+      const serverCreatedAt = new Date(serverPattern.createdAt);
+      if (serverCreatedAt > localCreatedAt) {
+        mergedPatterns[existingIndex] = serverPattern;
+      }
+    }
+  });
+
+  return mergedPatterns;
+}

@@ -11,7 +11,7 @@ class BlockedPattern(BaseModel):
     """
 
     pattern: str
-    created_at: str
+    createdAt: str  # Changed from created_at to createdAt to match the client-side
 
 
 class SyncBlockedPatternsRequest(BaseModel):
