@@ -27,3 +27,8 @@ export interface BlockedDetail {
   pattern: string;
   timestamp: string;
 }
+
+export interface SyncBlockedPatternsResponse {
+  success: boolean;
+  blocked_patterns: BlockedSite[];
+}

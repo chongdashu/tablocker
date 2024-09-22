@@ -16,6 +16,7 @@ export function matchesWildcard(str: string, pattern: string): boolean {
 const DEBUG_IS_PAID_USER = true;
 
 import { BASE_URL } from './config';
+import { BlockedSite, SyncBlockedPatternsResponse } from './types';
 
 export async function isPaidUser(): Promise<boolean> {
   try {
@@ -50,9 +51,62 @@ interface SessionResponse {
   is_paying: boolean;
 }
 
+export async function syncBlockedPatterns(
+  patterns: BlockedSite[]
+): Promise<SyncBlockedPatternsResponse> {
+  try {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      throw new Error('No token found');
+    }
+
+    const response = await fetch(`${BASE_URL}/api/user/blocklist/sync`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ patterns }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to sync blocked patterns');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error syncing blocked patterns:', error);
+    throw error;
+  }
+}
+
+export async function getBlockedPatterns(): Promise<BlockedSite[]> {
+  try {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      throw new Error('No token found');
+    }
+
+    const response = await fetch(`${BASE_URL}/api/user/blocklist`, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to get blocked patterns');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error getting blocked patterns:', error);
+    throw error;
+  }
+}
+
 // export function setIsPaidUser(isPaid: boolean): Promise<void> {
 //   return new Promise(resolve => {
 //     chrome.storage.local.set({ isPaidUser: isPaid }, resolve);
 //   });
 // }
-

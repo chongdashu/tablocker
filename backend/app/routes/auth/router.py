@@ -2,7 +2,6 @@ import logging
 import os
 from typing import Dict
 
-from backend.app.routes.auth.api import UserCreate
 from dotenv import load_dotenv
 from fastapi import APIRouter
 from fastapi import Depends
@@ -21,6 +20,7 @@ from database.manager import get_db
 from database.models import PayingUser
 from routes.auth.api import SessionResponse
 from routes.auth.api import Token
+from routes.auth.api import UserCreate
 from routes.auth.api import UserResponse
 
 load_dotenv()

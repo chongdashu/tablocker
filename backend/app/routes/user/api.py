@@ -1,3 +1,5 @@
+from typing import List
+
 from pydantic import BaseModel
 
 
@@ -9,14 +11,26 @@ class BlockedPattern(BaseModel):
     """
 
     pattern: str
+    created_at: str
+
+
+class SyncBlockedPatternsRequest(BaseModel):
+    """
+    Represents the request to sync blocked patterns
+    Attributes:
+        patterns (list[BlockedPattern]): The list of blocked patterns.
+    """
+
+    patterns: List[BlockedPattern]
 
 
 class SyncBlockedPatternsResponse(BaseModel):
     """
-    Represents the pattern of blocked url
+    Represents the response to sync blocked patterns
     Attributes:
-        urls (list[str]): The list of blocked urls.
+        success (bool): Whether the sync was successful.
+        blocked_patterns (list[BlockedPattern]): The list of blocked patterns.
     """
 
     success: bool
-    blocked_patterns: list[BlockedPattern]
+    blocked_patterns: List[BlockedPattern]
