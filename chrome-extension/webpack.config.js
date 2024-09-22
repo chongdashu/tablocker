@@ -10,6 +10,7 @@ module.exports = {
     styles: './src/styles.css',
     options: './src/options.ts',
     toast: './src/toast.ts',
+    blocked: './src/blocked.ts',
   },
   output: {
     path: path.resolve(__dirname, 'dist'),
