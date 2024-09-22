@@ -1,4 +1,4 @@
-import type { BlockedSite, TabStats, DailyStats, BlockedPattern, BlockedDetail } from './types';
+import type { BlockedDetail, BlockedPattern, BlockedSite, DailyStats, TabStats } from './types';
 import { matchesWildcard } from './utils';
 
 (async function () {
@@ -43,7 +43,7 @@ import { matchesWildcard } from './utils';
                 } else {
                   console.log(`Successfully removed blocked tab with id ${tab.id}`);
                   // Show toast notification
-                  chrome.tabs.create({ url: 'toast.html?message=URL was automatically shut' });
+                  chrome.tabs.create({ url: 'blocked.html?message=URL was automatically shut' });
                 }
                 // Update the stats to reflect a blocked tab, regardless of removal success
                 updateStats('blocked', pattern, url);
@@ -85,7 +85,7 @@ import { matchesWildcard } from './utils';
                   console.log('Successfully removed blocked tab');
                   updateStats('blocked', tab.url!, tab.url!);
                   // Show toast notification
-                  chrome.tabs.create({ url: 'toast.html?message=URL was automatically shut' });
+                  chrome.tabs.create({ url: 'blocked.html?message=URL was automatically shut' });
                 }
               });
             } else {
@@ -107,36 +107,42 @@ import { matchesWildcard } from './utils';
     const today = new Date().toISOString().split('T')[0];
     const timestamp = new Date().toISOString();
 
-    chrome.storage.local.get(['tabStats', 'dailyStats', 'blockedPatterns', 'blockedDetails'], result => {
-      const tabStats: TabStats = result.tabStats || { blocked: 0 };
-      const dailyStats: { [date: string]: DailyStats } = result.dailyStats || {};
-      const blockedPatterns: BlockedPattern = result.blockedPatterns || {};
-      const blockedDetails: BlockedDetail[] = result.blockedDetails || [];
+    chrome.storage.local.get(
+      ['tabStats', 'dailyStats', 'blockedPatterns', 'blockedDetails'],
+      result => {
+        const tabStats: TabStats = result.tabStats || { blocked: 0 };
+        const dailyStats: { [date: string]: DailyStats } = result.dailyStats || {};
+        const blockedPatterns: BlockedPattern = result.blockedPatterns || {};
+        const blockedDetails: BlockedDetail[] = result.blockedDetails || [];
 
-      // Update total blocked count
-      tabStats.blocked++;
+        // Update total blocked count
+        tabStats.blocked++;
 
-      // Update daily stats
-      if (!dailyStats[today]) {
-        dailyStats[today] = { blocked: 0 };
+        // Update daily stats
+        if (!dailyStats[today]) {
+          dailyStats[today] = { blocked: 0 };
+        }
+        dailyStats[today].blocked++;
+
+        // Update blocked patterns
+        if (!blockedPatterns[pattern]) {
+          blockedPatterns[pattern] = { count: 0, lastBlocked: '' };
+        }
+        blockedPatterns[pattern].count++;
+        blockedPatterns[pattern].lastBlocked = timestamp;
+
+        // Update blocked details
+        blockedDetails.push({ url, pattern, timestamp });
+        console.log('Saving blocked details:', blockedDetails);
+        chrome.storage.local.set({ tabStats, dailyStats, blockedPatterns, blockedDetails });
       }
-      dailyStats[today].blocked++;
-
-      // Update blocked patterns
-      if (!blockedPatterns[pattern]) {
-        blockedPatterns[pattern] = { count: 0, lastBlocked: '' };
-      }
-      blockedPatterns[pattern].count++;
-      blockedPatterns[pattern].lastBlocked = timestamp;
-
-      // Update blocked details
-      blockedDetails.push({ url, pattern, timestamp });
-      console.log('Saving blocked details:', blockedDetails);
-      chrome.storage.local.set({ tabStats, dailyStats, blockedPatterns, blockedDetails });
-    });
+    );
   }
 
-  function checkIfBlocked(url: string, blockedSites: BlockedSite[]): Promise<{ isBlocked: boolean; pattern: string }> {
+  function checkIfBlocked(
+    url: string,
+    blockedSites: BlockedSite[]
+  ): Promise<{ isBlocked: boolean; pattern: string }> {
     return chrome.storage.local.get('isBlocking').then(result => {
       const isBlocking = result.isBlocking !== false;
       updateBadge(isBlocking);
@@ -159,7 +165,7 @@ import { matchesWildcard } from './utils';
 
   // Modify the updateBadge function
   function updateBadge(isBlocking?: boolean) {
-    chrome.storage.sync.get('settings', (settingsData) => {
+    chrome.storage.sync.get('settings', settingsData => {
       const settings = settingsData.settings || { enableBadges: true };
 
       if (settings.enableBadges) {

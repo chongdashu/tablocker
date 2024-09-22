@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Site Blocked</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: Arial, sans-serif;
+        min-height: 100vh;
+        background: linear-gradient(to bottom, #9c27b0, #e91e63);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        text-align: center;
+      }
+      .container {
+        padding: 2rem;
+      }
+      .icon {
+        width: 100px;
+        height: 100px;
+        margin-bottom: 2rem;
+        animation: scaleUp 0.5s ease-out;
+      }
+      .title {
+        font-size: 2.5rem;
+        font-weight: bold;
+        margin-bottom: 1rem;
+      }
+      .message {
+        font-size: 1.25rem;
+        margin-bottom: 2rem;
+      }
+      .face {
+        width: 200px;
+        height: 200px;
+        margin-bottom: 2rem;
+      }
+      .encouragement {
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin-bottom: 2rem;
+        opacity: 0;
+        animation: fadeIn 0.5s ease-out 1s forwards;
+      }
+      .button {
+        background-color: white;
+        color: #9c27b0;
+        padding: 0.75rem 1.5rem;
+        border-radius: 9999px;
+        font-weight: bold;
+        font-size: 1.125rem;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        border: none;
+        transition: transform 0.1s ease-out;
+      }
+      .button:hover {
+        transform: scale(1.05);
+      }
+      .button:active {
+        transform: scale(0.95);
+      }
+      @keyframes scaleUp {
+        from {
+          transform: scale(0);
+        }
+        to {
+          transform: scale(1);
+        }
+      }
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10" />
+        <line x1="15" y1="9" x2="9" y2="15" />
+        <line x1="9" y1="9" x2="15" y2="15" />
+      </svg>
+      <h1 class="title">Oops! This site is blocked!</h1>
+      <p class="message">Looks like you've been caught red-handed trying to procrastinate!</p>
+      <svg class="face" viewBox="0 0 200 200">
+        <circle cx="100" cy="100" r="80" fill="#FDE68A" />
+        <path d="M65 90 Q 100 120 135 90" stroke="#4B5563" stroke-width="8" fill="none" />
+        <circle cx="75" cy="70" r="10" fill="#4B5563" />
+        <circle cx="125" cy="70" r="10" fill="#4B5563" />
+      </svg>
+      <p class="encouragement">Your future self thanks you for staying focused!</p>
+      <button class="button">
+        <svg
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          style="margin-right: 0.5rem"
+        >
+          <line x1="19" y1="12" x2="5" y2="12" />
+          <polyline points="12 19 5 12 12 5" />
+        </svg>
+        Return to Productivity
+      </button>
+    </div>
+    <script src="blocked.js" type="module"></script>
+  </body>
+</html>

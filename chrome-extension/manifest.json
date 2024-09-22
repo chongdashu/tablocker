@@ -24,7 +24,7 @@
   ],
   "web_accessible_resources": [
     {
-      "resources": ["toast.html", "login.html"],
+      "resources": ["toast.html", "login.html", "blocked.html"],
       "matches": ["<all_urls>"]
     }
   ]
