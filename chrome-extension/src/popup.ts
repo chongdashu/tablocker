@@ -2,7 +2,13 @@ import axios from 'axios';
 import { BASE_URL } from './config';
 import './styles.css';
 import { BlockedSite } from './types';
-import { isPaidUser, matchesWildcard } from './utils';
+import {
+  getBlockedPatterns,
+  isPaidUser,
+  matchesWildcard,
+  mergePatterns,
+  syncBlockedPatterns,
+} from './utils';
 
 const REQUEST_TIMEOUT = 5000; // 5 seconds timeout
 
@@ -31,7 +37,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Load the stored token if available
   const storedToken = localStorage.getItem('token');
   if (storedToken) {
-    checkSession(storedToken);
+    await checkSession(storedToken);
+    setupPeriodicSync(); // Set up periodic sync for logged-in users
   } else {
     logoutButton.classList.add('hidden');
     proStatus.classList.add('hidden');
@@ -52,6 +59,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const isPaid = await isPaidUser();
         if (isPaid) {
           proStatus.classList.remove('hidden');
+          await loadPatternsFromServer(); // Load patterns when user is logged in
         } else {
           proStatus.classList.add('hidden');
         }
@@ -234,13 +242,42 @@ document.addEventListener('DOMContentLoaded', async () => {
   function addRemoveListeners() {
     const removeButtons = document.querySelectorAll('[data-index]');
     removeButtons.forEach(button => {
-      button.addEventListener('click', e => {
+      button.addEventListener('click', async e => {
         const index = parseInt((e.target as HTMLButtonElement).getAttribute('data-index')!);
-        chrome.storage.local.get('blockedSites', (data: { blockedSites?: BlockedSite[] }) => {
-          const blockedSites: BlockedSite[] = data.blockedSites || [];
-          blockedSites.splice(index, 1);
-          chrome.storage.local.set({ blockedSites }, renderPatternList);
-        });
+        try {
+          await removePattern(index);
+          setStatus('Pattern removed and synced successfully', 'success');
+        } catch (error) {
+          console.error('Error removing pattern:', error);
+          setStatus('Failed to remove pattern', 'error');
+        }
+      });
+    });
+  }
+
+  async function removePattern(index: number) {
+    return new Promise<void>((resolve, reject) => {
+      chrome.storage.local.get('blockedSites', async (data: { blockedSites?: BlockedSite[] }) => {
+        const blockedSites: BlockedSite[] = data.blockedSites || [];
+        blockedSites.splice(index, 1);
+
+        try {
+          await new Promise<void>((resolveSet, rejectSet) => {
+            chrome.storage.local.set({ blockedSites }, () => {
+              if (chrome.runtime.lastError) {
+                rejectSet(chrome.runtime.lastError);
+              } else {
+                resolveSet();
+              }
+            });
+          });
+
+          renderPatternList();
+          await syncPatterns(); // Sync after removing a pattern
+          resolve();
+        } catch (error) {
+          reject(error);
+        }
       });
     });
   }
@@ -248,7 +285,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   function quickBlockDomain(domain: string) {
     chrome.storage.local.get('blockedSites', (data: { blockedSites?: BlockedSite[] }) => {
       const blockedSites: BlockedSite[] = data.blockedSites || [];
-      blockedSites.push({ pattern: `*://${domain}/*`, createdAt: new Date().toISOString() });
+      blockedSites.push({ pattern: `*://${domain}/*`, created_at: new Date().toISOString() });
       chrome.storage.local.set({ blockedSites }, () => {
         updateCurrentDomainInfo();
         renderPatternList();
@@ -280,6 +317,101 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
       renderUI();
     }
+  });
+
+  async function syncPatterns() {
+    try {
+      const storedPatterns = await new Promise<BlockedSite[]>(resolve => {
+        chrome.storage.local.get('blockedSites', result => {
+          resolve(result.blockedSites || []);
+        });
+      });
+
+      const syncedPatterns = await syncBlockedPatterns(storedPatterns);
+
+      if (syncedPatterns.success) {
+        await new Promise<void>(resolve => {
+          chrome.storage.local.set({ blockedSites: syncedPatterns.blocked_patterns }, resolve);
+        });
+        renderPatternList();
+        setStatus('Patterns synced successfully', 'success');
+      } else {
+        throw new Error('Sync was not successful');
+      }
+    } catch (error) {
+      console.error('Error syncing patterns:', error);
+      setStatus(
+        `Failed to sync patterns: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        'error'
+      );
+    }
+  }
+
+  async function loadPatternsFromServer() {
+    try {
+      const serverPatterns = await getBlockedPatterns();
+      const localPatterns = await new Promise<BlockedSite[]>(resolve => {
+        chrome.storage.local.get('blockedSites', result => {
+          resolve(result.blockedSites || []);
+        });
+      });
+
+      const mergedPatterns = mergePatterns(localPatterns, serverPatterns);
+
+      await new Promise<void>(resolve => {
+        chrome.storage.local.set({ blockedSites: mergedPatterns }, resolve);
+      });
+      renderPatternList();
+
+      // If there were local patterns that weren't on the server, sync them back
+      if (mergedPatterns.length > serverPatterns.length) {
+        await syncPatterns();
+      }
+    } catch (error) {
+      console.error('Error loading patterns from server:', error);
+      setStatus('Failed to load patterns from server', 'error');
+    }
+  }
+
+  // Add this function to sync patterns periodically
+  function setupPeriodicSync() {
+    setInterval(syncPatterns, 5 * 60 * 1000); // Sync every 5 minutes
+  }
+
+  // Modify the addPattern function to sync after adding a new pattern
+  async function addPattern() {
+    const pattern = urlPatternInput.value.trim();
+    if (pattern) {
+      chrome.storage.local.get('blockedSites', async (data: { blockedSites?: BlockedSite[] }) => {
+        const blockedSites: BlockedSite[] = data.blockedSites || [];
+        const newPattern = { pattern, created_at: new Date().toISOString() };
+        blockedSites.push(newPattern);
+
+        try {
+          await new Promise<void>((resolve, reject) => {
+            chrome.storage.local.set({ blockedSites }, () => {
+              if (chrome.runtime.lastError) {
+                reject(chrome.runtime.lastError);
+              } else {
+                resolve();
+              }
+            });
+          });
+
+          renderPatternList();
+          await syncPatterns(); // Sync after adding a new pattern
+          setStatus('Pattern added and synced successfully', 'success');
+        } catch (error) {
+          console.error('Error adding pattern:', error);
+          setStatus('Failed to add pattern', 'error');
+        }
+      });
+      urlPatternInput.value = '';
+    }
+  }
+
+  addPatternButton.addEventListener('click', async () => {
+    await addPattern();
   });
 });
 

@@ -20,8 +20,8 @@ from database.manager import get_db
 from database.models import PayingUser
 from routes.auth.api import SessionResponse
 from routes.auth.api import Token
+from routes.auth.api import UserCreate
 from routes.auth.api import UserResponse
-from routes.user.api import UserCreate
 
 load_dotenv()
 

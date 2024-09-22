@@ -1,6 +1,6 @@
 export interface BlockedSite {
   pattern: string;
-  createdAt: string;
+  created_at: string;
 }
 
 export interface TabStats {
@@ -26,4 +26,9 @@ export interface BlockedDetail {
   url: string;
   pattern: string;
   timestamp: string;
+}
+
+export interface SyncBlockedPatternsResponse {
+  success: boolean;
+  blocked_patterns: BlockedSite[];
 }

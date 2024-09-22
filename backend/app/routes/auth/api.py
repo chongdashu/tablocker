@@ -48,3 +48,16 @@ class UserResponse(BaseModel):
 
     email: str | None = None
     supabase_user_id: str
+
+
+class UserCreate(BaseModel):
+    username: str = "example@email.com"
+    password: str = "password123"
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "email": "user@example.com",
+                "password": "strongpassword123",
+            }
+        }
