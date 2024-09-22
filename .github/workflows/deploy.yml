@@ -131,23 +131,31 @@ jobs:
         run: |
 
           echo "Waiting for FastAPI server to start..."
-          sleep 10
-
           echo "Verifying external accessibility..."
 
-          if curl -sSf https://untab.xyz/api/health/check > /dev/null 2>&1; then
-            echo "External HTTPS accessibility verified successfully!"
-          else
-            echo "Failed to verify external accessibility"
-            exit 1
-          fi
+          max_attempts=15
+          attempt=1
+
+          while [ $attempt -le $max_attempts ]; do
+            if curl -sSf https://untab.xyz/api/health/check > /dev/null 2>&1; then
+              echo "External HTTPS accessibility verified successfully!"
+              exit 0
+            else
+              echo "Attempt $attempt: Failed to verify external accessibility. Retrying in 2 seconds..."
+              sleep 2
+              attempt=$((attempt + 1))
+            fi
+          done
+
+          echo "Failed to verify external accessibility after 30 seconds"
+          exit 1
 
       - name: Verify External Accessibility - Frontend Website
         run: |
           echo "Verifying external accessibility..."
-          if curl -sSf https://untab.xyz > /dev/null 2>&1; then
+          if curl -sSf -o /dev/null -w "%{http_code}" https://untab.xyz | grep -q 200; then
             echo "External HTTPS accessibility verified successfully!"
           else
-            echo "Failed to verify external accessibility"
+            echo "Failed to verify external accessibility. HTTP status code: $(curl -sSf -o /dev/null -w "%{http_code}" https://untab.xyz)"
             exit 1
           fi
