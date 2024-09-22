@@ -22,7 +22,13 @@ async def get_blocklist(current_user: UserResponse = Depends(get_current_user), 
     logger.info(f"Fetching blocklist for user {current_user.supabase_user_id}")
     patterns = db.query(BlockedPattern).filter(BlockedPattern.supabase_user_id == current_user.supabase_user_id).all()
     logger.info(f"Found {len(patterns)} patterns for user {current_user.supabase_user_id}")
-    return [BlockedPatternSchema(pattern=p.pattern, created_at=p.created_at.isoformat()) for p in patterns]
+    return [
+        BlockedPatternSchema(
+            pattern=p.pattern,
+            created_at=p.created_at.isoformat(),
+        )
+        for p in patterns
+    ]
 
 
 @router.post("/blocklist/sync", response_model=SyncBlockedPatternsResponse)
@@ -46,7 +52,7 @@ async def sync_blocklist(
             new_pattern = BlockedPattern(
                 supabase_user_id=current_user.supabase_user_id,
                 pattern=pattern.pattern,
-                created_at=datetime.fromisoformat(pattern.createdAt),  # Changed from created_at to createdAt
+                created_at=datetime.fromisoformat(pattern.created_at),
             )
             db.add(new_pattern)
             new_patterns_count += 1
@@ -59,10 +65,7 @@ async def sync_blocklist(
         db.query(BlockedPattern).filter(BlockedPattern.supabase_user_id == current_user.supabase_user_id).all()
     )
     response_patterns = [
-        BlockedPatternSchema(
-            pattern=p.pattern, createdAt=p.created_at.isoformat()
-        )  # Changed from created_at to createdAt
-        for p in updated_patterns
+        BlockedPatternSchema(pattern=p.pattern, created_at=p.created_at.isoformat()) for p in updated_patterns
     ]
     logger.info(f"Returning {len(response_patterns)} total patterns for user {current_user.supabase_user_id}")
 

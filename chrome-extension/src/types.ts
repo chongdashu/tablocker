@@ -1,6 +1,6 @@
 export interface BlockedSite {
   pattern: string;
-  createdAt: string;
+  created_at: string;
 }
 
 export interface TabStats {

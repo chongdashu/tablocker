@@ -7,11 +7,15 @@ class BlockedPattern(BaseModel):
     """
     Represents the pattern of blocked url
     Attributes:
-        urls (list[str]): The list of blocked urls.
+        pattern (str): The blocked URL pattern.
+        created_at (str): The creation timestamp (aliased as createdAt for frontend compatibility).
     """
 
     pattern: str
-    createdAt: str  # Changed from created_at to createdAt to match the client-side
+    created_at: str
+
+    class Config:
+        allow_population_by_field_name = True
 
 
 class SyncBlockedPatternsRequest(BaseModel):

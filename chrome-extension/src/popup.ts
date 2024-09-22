@@ -242,13 +242,42 @@ document.addEventListener('DOMContentLoaded', async () => {
   function addRemoveListeners() {
     const removeButtons = document.querySelectorAll('[data-index]');
     removeButtons.forEach(button => {
-      button.addEventListener('click', e => {
+      button.addEventListener('click', async e => {
         const index = parseInt((e.target as HTMLButtonElement).getAttribute('data-index')!);
-        chrome.storage.local.get('blockedSites', (data: { blockedSites?: BlockedSite[] }) => {
-          const blockedSites: BlockedSite[] = data.blockedSites || [];
-          blockedSites.splice(index, 1);
-          chrome.storage.local.set({ blockedSites }, renderPatternList);
-        });
+        try {
+          await removePattern(index);
+          setStatus('Pattern removed and synced successfully', 'success');
+        } catch (error) {
+          console.error('Error removing pattern:', error);
+          setStatus('Failed to remove pattern', 'error');
+        }
+      });
+    });
+  }
+
+  async function removePattern(index: number) {
+    return new Promise<void>((resolve, reject) => {
+      chrome.storage.local.get('blockedSites', async (data: { blockedSites?: BlockedSite[] }) => {
+        const blockedSites: BlockedSite[] = data.blockedSites || [];
+        blockedSites.splice(index, 1);
+
+        try {
+          await new Promise<void>((resolveSet, rejectSet) => {
+            chrome.storage.local.set({ blockedSites }, () => {
+              if (chrome.runtime.lastError) {
+                rejectSet(chrome.runtime.lastError);
+              } else {
+                resolveSet();
+              }
+            });
+          });
+
+          renderPatternList();
+          await syncPatterns(); // Sync after removing a pattern
+          resolve();
+        } catch (error) {
+          reject(error);
+        }
       });
     });
   }
@@ -256,7 +285,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   function quickBlockDomain(domain: string) {
     chrome.storage.local.get('blockedSites', (data: { blockedSites?: BlockedSite[] }) => {
       const blockedSites: BlockedSite[] = data.blockedSites || [];
-      blockedSites.push({ pattern: `*://${domain}/*`, createdAt: new Date().toISOString() });
+      blockedSites.push({ pattern: `*://${domain}/*`, created_at: new Date().toISOString() });
       chrome.storage.local.set({ blockedSites }, () => {
         updateCurrentDomainInfo();
         renderPatternList();
@@ -350,20 +379,40 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   // Modify the addPattern function to sync after adding a new pattern
-  function addPattern() {
+  async function addPattern() {
     const pattern = urlPatternInput.value.trim();
     if (pattern) {
-      chrome.storage.local.get('blockedSites', (data: { blockedSites?: BlockedSite[] }) => {
+      chrome.storage.local.get('blockedSites', async (data: { blockedSites?: BlockedSite[] }) => {
         const blockedSites: BlockedSite[] = data.blockedSites || [];
-        blockedSites.push({ pattern, createdAt: new Date().toISOString() });
-        chrome.storage.local.set({ blockedSites }, () => {
+        const newPattern = { pattern, created_at: new Date().toISOString() };
+        blockedSites.push(newPattern);
+
+        try {
+          await new Promise<void>((resolve, reject) => {
+            chrome.storage.local.set({ blockedSites }, () => {
+              if (chrome.runtime.lastError) {
+                reject(chrome.runtime.lastError);
+              } else {
+                resolve();
+              }
+            });
+          });
+
           renderPatternList();
-          syncPatterns(); // Sync after adding a new pattern
-        });
+          await syncPatterns(); // Sync after adding a new pattern
+          setStatus('Pattern added and synced successfully', 'success');
+        } catch (error) {
+          console.error('Error adding pattern:', error);
+          setStatus('Failed to add pattern', 'error');
+        }
       });
       urlPatternInput.value = '';
     }
   }
+
+  addPatternButton.addEventListener('click', async () => {
+    await addPattern();
+  });
 });
 
 function setStatus(message: string, type: 'error' | 'success' | 'info') {

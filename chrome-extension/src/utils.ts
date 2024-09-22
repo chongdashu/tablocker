@@ -124,8 +124,8 @@ export function mergePatterns(
       mergedPatterns.push(serverPattern);
     } else {
       // If the pattern exists locally, keep the newer one based on createdAt
-      const localCreatedAt = new Date(mergedPatterns[existingIndex].createdAt);
-      const serverCreatedAt = new Date(serverPattern.createdAt);
+      const localCreatedAt = new Date(mergedPatterns[existingIndex].created_at);
+      const serverCreatedAt = new Date(serverPattern.created_at);
       if (serverCreatedAt > localCreatedAt) {
         mergedPatterns[existingIndex] = serverPattern;
       }
