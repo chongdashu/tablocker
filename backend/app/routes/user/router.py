@@ -45,9 +45,11 @@ async def sync_blocklist(
     existing_pattern_set = {p.pattern for p in existing_patterns}
     logger.info(f"Found {len(existing_patterns)} existing patterns for user {current_user.supabase_user_id}")
 
-    # Add new patterns
+    # Add new patterns and track patterns to keep
     new_patterns_count = 0
+    patterns_to_keep: set[str] = set()
     for pattern in request.patterns:
+        patterns_to_keep.add(pattern.pattern)
         if pattern.pattern not in existing_pattern_set:
             new_pattern = BlockedPattern(
                 supabase_user_id=current_user.supabase_user_id,
@@ -57,7 +59,17 @@ async def sync_blocklist(
             db.add(new_pattern)
             new_patterns_count += 1
 
-    logger.info(f"Adding {new_patterns_count} new patterns for user {current_user.supabase_user_id}")
+    # Remove patterns not in the request
+    patterns_to_remove = existing_pattern_set - patterns_to_keep
+    if patterns_to_remove:
+        db.query(BlockedPattern).filter(
+            BlockedPattern.supabase_user_id == current_user.supabase_user_id,
+            BlockedPattern.pattern.in_(patterns_to_remove),
+        ).delete(synchronize_session=False)
+
+    logger.info(
+        f"Adding {new_patterns_count} new patterns and removing {len(patterns_to_remove)} patterns for user {current_user.supabase_user_id}"
+    )
     db.commit()
 
     # Fetch updated patterns
