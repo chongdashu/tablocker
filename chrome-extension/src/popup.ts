@@ -33,11 +33,15 @@ document.addEventListener('DOMContentLoaded', async () => {
   const statusBar = document.getElementById('statusBar') as HTMLDivElement;
   const profileButton = document.getElementById('profileButton') as HTMLButtonElement;
 
+  // Cached data
+  let cachedProStatus: boolean | null = null;
+  let cachedBlockedSites: BlockedSite[] | null = null;
+
   // Initial UI setup
   initializeUI();
 
   // Load stored data and update UI
-  loadStoredDataAndUpdateUI();
+  loadCachedDataAndUpdateUI();
 
   // Check session and perform network-dependent operations
   const storedToken = localStorage.getItem('token');
@@ -65,24 +69,32 @@ document.addEventListener('DOMContentLoaded', async () => {
     quickBlockButton.classList.add('hidden');
   }
 
-  function loadStoredDataAndUpdateUI() {
-    chrome.storage.local.get(['isBlocking', 'blockedSites'], result => {
-      const isBlocking = result.isBlocking !== false;
-      const blockedSites = result.blockedSites || [];
+  async function loadCachedDataAndUpdateUI() {
+    cachedProStatus = await getCachedProStatus();
+    cachedBlockedSites = await getCachedBlockedSites();
 
+    updateProStatusUI(cachedProStatus);
+    if (cachedBlockedSites) {
+      renderPatternList(cachedBlockedSites);
+      updateCurrentDomainInfo(cachedBlockedSites);
+    }
+
+    chrome.storage.local.get(['isBlocking'], result => {
+      const isBlocking = result.isBlocking !== false;
       updateToggleUI(isBlocking);
       updateStatusIndicator(isBlocking);
-      updateCurrentDomainInfo(blockedSites);
     });
   }
 
   async function loadAndRenderPatterns() {
     const isPaid = await isPaidUser();
+    updateProStatusUI(isPaid);
     if (isPaid) {
       await loadPatternsFromServer();
     } else {
       const blockedSites = await getBlockedSites();
       renderPatternList(blockedSites);
+      updateCurrentDomainInfo(blockedSites);
     }
   }
 
@@ -106,20 +118,16 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   function handleLoggedInState(email: string) {
-    // logoutButton.classList.remove('hidden');
     setStatus(`Logged in as ${email}`, 'success');
     isPaidUser().then(isPaid => {
-      if (isPaid) {
-        proStatus.classList.remove('hidden');
-      } else {
-        proStatus.classList.add('hidden');
-      }
+      updateProStatusUI(isPaid);
+      setCachedProStatus(isPaid);
     });
   }
 
   function handleLoggedOutState() {
     logoutButton.classList.add('hidden');
-    proStatus.classList.add('hidden');
+    updateProStatusUI(false);
     setStatus('Please log in to access all features', 'info');
   }
 
@@ -219,7 +227,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   async function renderPatternList(blockedSites: BlockedSite[]) {
     patternList.innerHTML = '';
-    const isPaid = await isPaidUser();
+    const isPaid = cachedProStatus !== null ? cachedProStatus : await isPaidUser();
     updatePatternCounter(blockedSites.length, isPaid);
 
     blockedSites.forEach((site, index) => {
@@ -350,6 +358,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       await chrome.storage.local.set({ blockedSites: mergedPatterns });
       renderPatternList(mergedPatterns);
+      updateCurrentDomainInfo(mergedPatterns);
+      setCachedBlockedSites(mergedPatterns);
 
       if (mergedPatterns.length > serverPatterns.length) {
         await syncPatterns();
@@ -357,6 +367,40 @@ document.addEventListener('DOMContentLoaded', async () => {
     } catch (error) {
       console.error('Error loading patterns from server:', error);
       setStatus('Failed to load patterns from server', 'error');
+    }
+  }
+
+  async function getCachedProStatus(): Promise<boolean | null> {
+    return new Promise(resolve => {
+      chrome.storage.local.get('cachedProStatus', result => {
+        resolve(result.cachedProStatus || null);
+      });
+    });
+  }
+
+  function setCachedProStatus(isPro: boolean) {
+    chrome.storage.local.set({ cachedProStatus: isPro });
+  }
+
+  async function getCachedBlockedSites(): Promise<BlockedSite[] | null> {
+    return new Promise(resolve => {
+      chrome.storage.local.get('cachedBlockedSites', result => {
+        resolve(result.cachedBlockedSites || null);
+      });
+    });
+  }
+
+  function setCachedBlockedSites(sites: BlockedSite[]) {
+    chrome.storage.local.set({ cachedBlockedSites: sites });
+  }
+
+  function updateProStatusUI(isPro: boolean | null) {
+    if (isPro === null) {
+      proStatus.classList.add('hidden');
+    } else if (isPro) {
+      proStatus.classList.remove('hidden');
+    } else {
+      proStatus.classList.add('hidden');
     }
   }
 
@@ -434,7 +478,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       } else {
         handleLoggedOutState();
       }
-      loadStoredDataAndUpdateUI();
+      loadCachedDataAndUpdateUI();
     }
   });
 });
