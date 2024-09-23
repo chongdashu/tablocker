@@ -13,6 +13,7 @@ import {
 const REQUEST_TIMEOUT = 5000; // 5 seconds timeout
 
 document.addEventListener('DOMContentLoaded', async () => {
+  // DOM element references
   const urlPatternInput = document.getElementById('urlPattern') as HTMLInputElement;
   const addPatternButton = document.getElementById('addPattern') as HTMLButtonElement;
   const patternList = document.getElementById('patternList') as HTMLUListElement;
@@ -25,99 +26,166 @@ document.addEventListener('DOMContentLoaded', async () => {
   const blockingStatusElement = document.getElementById('blockingStatus') as HTMLParagraphElement;
   const patternCounter = document.getElementById('patternCounter');
   const proStatus = document.getElementById('proStatus') as HTMLSpanElement;
-
   const authSection = document.getElementById('authSection') as HTMLDivElement;
   const loginButton = document.getElementById('loginButton') as HTMLButtonElement;
   const signupButton = document.getElementById('signupButton') as HTMLButtonElement;
   const logoutButton = document.getElementById('logoutButton') as HTMLButtonElement;
   const statusBar = document.getElementById('statusBar') as HTMLDivElement;
-
   const profileButton = document.getElementById('profileButton') as HTMLButtonElement;
 
-  // Load the stored token if available
+  // Initial UI setup
+  initializeUI();
+
+  // Load stored data and update UI
+  loadStoredDataAndUpdateUI();
+
+  // Check session and perform network-dependent operations
   const storedToken = localStorage.getItem('token');
   if (storedToken) {
-    await checkSession(storedToken);
-    setupPeriodicSync(); // Set up periodic sync for logged-in users
+    checkSessionAndUpdateUI(storedToken);
   } else {
-    logoutButton.classList.add('hidden');
-    proStatus.classList.add('hidden');
-    setStatus('Please log in to access all features', 'info');
+    handleLoggedOutState();
   }
 
-  async function checkSession(token: string) {
+  // Load and render patterns after all other operations
+  await loadAndRenderPatterns();
+
+  // Event listeners
+  toggleButton.addEventListener('click', handleToggleClick);
+  addPatternButton.addEventListener('click', handleAddPattern);
+  profileButton.addEventListener('click', openLoginPopup);
+  quickBlockButton.addEventListener('click', handleQuickBlock);
+
+  // Functions
+
+  function initializeUI() {
+    updateToggleUI(true); // Assume blocking is active by default
+    updateStatusIndicator(true);
+    setStatus('Loading...', 'info');
+    quickBlockButton.classList.add('hidden');
+  }
+
+  function loadStoredDataAndUpdateUI() {
+    chrome.storage.local.get(['isBlocking', 'blockedSites'], result => {
+      const isBlocking = result.isBlocking !== false;
+      const blockedSites = result.blockedSites || [];
+
+      updateToggleUI(isBlocking);
+      updateStatusIndicator(isBlocking);
+      updateCurrentDomainInfo(blockedSites);
+    });
+  }
+
+  async function loadAndRenderPatterns() {
+    const isPaid = await isPaidUser();
+    if (isPaid) {
+      await loadPatternsFromServer();
+    } else {
+      const blockedSites = await getBlockedSites();
+      renderPatternList(blockedSites);
+    }
+  }
+
+  async function checkSessionAndUpdateUI(token: string) {
     try {
       const response = await axios.get(`${BASE_URL}/api/auth/session`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
         withCredentials: true,
         timeout: REQUEST_TIMEOUT,
       });
 
       if (response.data.email) {
-        const isPaid = await isPaidUser();
-        if (isPaid) {
-          proStatus.classList.remove('hidden');
-          await loadPatternsFromServer(); // Load patterns when user is logged in
-        } else {
-          proStatus.classList.add('hidden');
-        }
-        setStatus('Logged in as ' + response.data.email, 'success');
+        handleLoggedInState(response.data.email);
       } else {
-        handleSessionCheckFailure();
+        handleLoggedOutState();
       }
     } catch (error) {
       console.error('Session check error:', error);
-      handleSessionCheckFailure(error);
+      handleLoggedOutState();
     }
   }
 
-  function handleSessionCheckFailure(error?: any) {
-    localStorage.removeItem('token');
-    logoutButton.classList.add('hidden');
-    proStatus.classList.add('hidden');
-    const errorMessage =
-      error?.response?.data?.detail || error?.message || 'Unknown error occurred';
-    setStatus(`Unable to verify login status. ${errorMessage}.`, 'error');
+  function handleLoggedInState(email: string) {
+    // logoutButton.classList.remove('hidden');
+    setStatus(`Logged in as ${email}`, 'success');
+    isPaidUser().then(isPaid => {
+      if (isPaid) {
+        proStatus.classList.remove('hidden');
+      } else {
+        proStatus.classList.add('hidden');
+      }
+    });
   }
 
-  // Load the current state
-  chrome.storage.local.get('isBlocking', result => {
-    const isBlocking = result.isBlocking !== false; // Default to true if not set
-    updateToggleUI(isBlocking);
-    updateStatusIndicator(isBlocking);
-  });
+  function handleLoggedOutState() {
+    logoutButton.classList.add('hidden');
+    proStatus.classList.add('hidden');
+    setStatus('Please log in to access all features', 'info');
+  }
 
-  toggleButton.addEventListener('click', () => {
+  function handleToggleClick() {
     chrome.storage.local.get(['isBlocking', 'blockedSites'], result => {
-      const currentState = result.isBlocking !== false; // Default to true if not set
+      const currentState = result.isBlocking !== false;
       const newState = !currentState;
       const blockedSites = result.blockedSites || [];
 
       chrome.storage.local.set({ isBlocking: newState }, () => {
         updateToggleUI(newState);
         updateStatusIndicator(newState);
-        // The badge will be updated automatically due to the storage listener in background.ts
 
         if (newState) {
-          // Close all tabs that match the patterns when blocking is enabled
-          chrome.tabs.query({}, tabs => {
-            tabs.forEach(tab => {
-              if (tab.url) {
-                const isBlocked = blockedSites.some((site: BlockedSite) =>
-                  matchesWildcard(tab.url!, site.pattern)
-                );
-                if (isBlocked) {
-                  chrome.tabs.remove(tab.id!);
-                }
-              }
-            });
-          });
+          closeBlockedTabs(blockedSites);
         }
       });
     });
-  });
+  }
+
+  async function handleAddPattern() {
+    const pattern = urlPatternInput.value.trim();
+    if (pattern) {
+      const isPaid = await isPaidUser();
+      const blockedSites = await getBlockedSites();
+
+      if (!isPaid && blockedSites.length >= 5) {
+        setStatus('Upgrade to Pro to add more patterns', 'error');
+        return;
+      }
+
+      const newPattern = { pattern, created_at: new Date().toISOString() };
+      blockedSites.push(newPattern);
+
+      try {
+        await chrome.storage.local.set({ blockedSites });
+        renderPatternList(blockedSites);
+        await syncPatterns();
+        setStatus('Pattern added and synced successfully', 'success');
+        urlPatternInput.value = '';
+      } catch (error) {
+        console.error('Error adding pattern:', error);
+        setStatus('Failed to add pattern', 'error');
+      }
+    }
+  }
+
+  function handleQuickBlock() {
+    chrome.tabs.query({ active: true, currentWindow: true }, async tabs => {
+      const currentTab = tabs[0];
+      if (currentTab && currentTab.url) {
+        const url = new URL(currentTab.url);
+        const domain = url.hostname;
+        const pattern = `*://${domain}/*`;
+
+        const blockedSites = await getBlockedSites();
+        blockedSites.push({ pattern, created_at: new Date().toISOString() });
+
+        await chrome.storage.local.set({ blockedSites });
+        renderPatternList(blockedSites);
+        updateCurrentDomainInfo(blockedSites);
+        await syncPatterns();
+        setStatus('Domain blocked and synced successfully', 'success');
+      }
+    });
+  }
 
   function updateToggleUI(isBlocking: boolean) {
     if (isBlocking) {
@@ -149,65 +217,45 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
-  function renderUI() {
-    chrome.storage.local.get('isBlocking', result => {
-      const isBlocking = result.isBlocking !== false; // Default to true if not set
-      updateToggleUI(isBlocking);
-      updateStatusIndicator(isBlocking);
+  async function renderPatternList(blockedSites: BlockedSite[]) {
+    patternList.innerHTML = '';
+    const isPaid = await isPaidUser();
+    updatePatternCounter(blockedSites.length, isPaid);
+
+    blockedSites.forEach((site, index) => {
+      const li = document.createElement('li');
+      li.className = 'flex justify-between items-center bg-white p-3 rounded-lg shadow-sm';
+      li.innerHTML = `
+        <span class="text-indigo-800">${site.pattern}</span>
+        <button class="text-red-500 hover:text-red-700 transition duration-200" data-index="${index}">Remove</button>
+      `;
+      patternList.appendChild(li);
     });
-    updateCurrentDomainInfo();
-    renderPatternList();
+    addRemoveListeners();
   }
 
-  function renderPatternList() {
-    chrome.storage.local.get('blockedSites', (data: { blockedSites?: BlockedSite[] }) => {
-      const blockedSites: BlockedSite[] = data.blockedSites || [];
-      patternList.innerHTML = '';
-
-      updatePatternCounter(blockedSites.length);
-
-      blockedSites.forEach((site, index) => {
-        const li = document.createElement('li');
-        li.className = 'flex justify-between items-center bg-white p-3 rounded-lg shadow-sm';
-        li.innerHTML = `
-          <span class="text-indigo-800">${site.pattern}</span>
-          <button class="text-red-500 hover:text-red-700 transition duration-200" data-index="${index}">Remove</button>
-        `;
-        patternList.appendChild(li);
-      });
-      addRemoveListeners();
-    });
-  }
-
-  function updateCurrentDomainInfo() {
+  function updateCurrentDomainInfo(blockedSites: BlockedSite[]) {
     chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
       const currentTab = tabs[0];
       if (currentTab && currentTab.url) {
         const url = new URL(currentTab.url);
         const domain = url.hostname;
 
-        chrome.storage.local.get('blockedSites', (data: { blockedSites?: BlockedSite[] }) => {
-          const blockedSites: BlockedSite[] = data.blockedSites || [];
-          const isBlocked = blockedSites.some(site =>
-            matchesWildcard(currentTab.url!, site.pattern)
-          );
+        domainInfo.textContent = domain;
 
-          domainInfo.textContent = domain;
+        const isBlocked = blockedSites.some(site => matchesWildcard(currentTab.url!, site.pattern));
 
-          if (isBlocked) {
-            blockStatus.textContent = '🚫 Blocked';
-            blockStatus.classList.add('bg-red-100', 'text-red-800');
-            blockStatus.classList.remove('bg-green-100', 'text-green-800');
-            quickBlockButton.classList.add('hidden');
-          } else {
-            blockStatus.textContent = '✅ Not Blocked';
-            blockStatus.classList.add('bg-green-100', 'text-green-800');
-            blockStatus.classList.remove('bg-red-100', 'text-red-800');
-            quickBlockButton.classList.remove('hidden');
-
-            quickBlockButton.onclick = () => quickBlockDomain(domain);
-          }
-        });
+        if (isBlocked) {
+          blockStatus.textContent = '🚫 Blocked';
+          blockStatus.classList.add('bg-red-100', 'text-red-800');
+          blockStatus.classList.remove('bg-green-100', 'text-green-800');
+          quickBlockButton.classList.add('hidden');
+        } else {
+          blockStatus.textContent = '✅ Not Blocked';
+          blockStatus.classList.add('bg-green-100', 'text-green-800');
+          blockStatus.classList.remove('bg-red-100', 'text-red-800');
+          quickBlockButton.classList.remove('hidden');
+        }
       } else {
         domainInfo.textContent = 'No active tab';
         blockStatus.textContent = '';
@@ -216,8 +264,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
-  async function updatePatternCounter(count: number) {
-    const isPaid = await isPaidUser();
+  async function updatePatternCounter(count: number, isPaid: boolean) {
     if (patternCounter) {
       patternCounter.textContent = isPaid ? `${count}` : `${count}/5`;
     }
@@ -256,46 +303,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   async function removePattern(index: number) {
-    return new Promise<void>((resolve, reject) => {
-      chrome.storage.local.get('blockedSites', async (data: { blockedSites?: BlockedSite[] }) => {
-        const blockedSites: BlockedSite[] = data.blockedSites || [];
-        blockedSites.splice(index, 1);
+    const blockedSites = await getBlockedSites();
+    blockedSites.splice(index, 1);
 
-        try {
-          await new Promise<void>((resolveSet, rejectSet) => {
-            chrome.storage.local.set({ blockedSites }, () => {
-              if (chrome.runtime.lastError) {
-                rejectSet(chrome.runtime.lastError);
-              } else {
-                resolveSet();
-              }
-            });
-          });
-
-          renderPatternList();
-          await syncPatterns(); // Sync after removing a pattern
-          resolve();
-        } catch (error) {
-          reject(error);
-        }
-      });
-    });
+    await chrome.storage.local.set({ blockedSites });
+    renderPatternList(blockedSites);
+    await syncPatterns();
   }
-
-  function quickBlockDomain(domain: string) {
-    chrome.storage.local.get('blockedSites', (data: { blockedSites?: BlockedSite[] }) => {
-      const blockedSites: BlockedSite[] = data.blockedSites || [];
-      blockedSites.push({ pattern: `*://${domain}/*`, created_at: new Date().toISOString() });
-      chrome.storage.local.set({ blockedSites }, () => {
-        updateCurrentDomainInfo();
-        renderPatternList();
-      });
-    });
-  }
-
-  renderUI();
-
-  profileButton.addEventListener('click', openLoginPopup);
 
   function openLoginPopup() {
     chrome.windows.create({
@@ -306,34 +320,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
-  // Add this message listener
-  chrome.runtime.onMessage.addListener(message => {
-    if (message.action === 'login_success' || message.action === 'logout_success') {
-      const storedToken = localStorage.getItem('token');
-      if (storedToken) {
-        checkSession(storedToken);
-      } else {
-        setStatus('Please log in to access all features', 'info');
-      }
-      renderUI();
-    }
-  });
-
   async function syncPatterns() {
     try {
-      const storedPatterns = await new Promise<BlockedSite[]>(resolve => {
-        chrome.storage.local.get('blockedSites', result => {
-          resolve(result.blockedSites || []);
-        });
-      });
-
+      const storedPatterns = await getBlockedSites();
       const syncedPatterns = await syncBlockedPatterns(storedPatterns);
 
       if (syncedPatterns.success) {
-        await new Promise<void>(resolve => {
-          chrome.storage.local.set({ blockedSites: syncedPatterns.blocked_patterns }, resolve);
-        });
-        renderPatternList();
+        await chrome.storage.local.set({ blockedSites: syncedPatterns.blocked_patterns });
+        renderPatternList(syncedPatterns.blocked_patterns);
         setStatus('Patterns synced successfully', 'success');
       } else {
         throw new Error('Sync was not successful');
@@ -350,20 +344,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   async function loadPatternsFromServer() {
     try {
       const serverPatterns = await getBlockedPatterns();
-      const localPatterns = await new Promise<BlockedSite[]>(resolve => {
-        chrome.storage.local.get('blockedSites', result => {
-          resolve(result.blockedSites || []);
-        });
-      });
+      const localPatterns = await getBlockedSites();
 
       const mergedPatterns = mergePatterns(localPatterns, serverPatterns);
 
-      await new Promise<void>(resolve => {
-        chrome.storage.local.set({ blockedSites: mergedPatterns }, resolve);
-      });
-      renderPatternList();
+      await chrome.storage.local.set({ blockedSites: mergedPatterns });
+      renderPatternList(mergedPatterns);
 
-      // If there were local patterns that weren't on the server, sync them back
       if (mergedPatterns.length > serverPatterns.length) {
         await syncPatterns();
       }
@@ -373,88 +360,81 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
-  // Add this function to sync patterns periodically
-  function setupPeriodicSync() {
-    setInterval(syncPatterns, 5 * 60 * 1000); // Sync every 5 minutes
-  }
-
-  // Modify the addPattern function to sync after adding a new pattern
-  async function addPattern() {
-    const pattern = urlPatternInput.value.trim();
-    if (pattern) {
-      chrome.storage.local.get('blockedSites', async (data: { blockedSites?: BlockedSite[] }) => {
-        const blockedSites: BlockedSite[] = data.blockedSites || [];
-        const newPattern = { pattern, created_at: new Date().toISOString() };
-        blockedSites.push(newPattern);
-
-        try {
-          await new Promise<void>((resolve, reject) => {
-            chrome.storage.local.set({ blockedSites }, () => {
-              if (chrome.runtime.lastError) {
-                reject(chrome.runtime.lastError);
-              } else {
-                resolve();
-              }
-            });
-          });
-
-          renderPatternList();
-          await syncPatterns(); // Sync after adding a new pattern
-          setStatus('Pattern added and synced successfully', 'success');
-        } catch (error) {
-          console.error('Error adding pattern:', error);
-          setStatus('Failed to add pattern', 'error');
+  function closeBlockedTabs(blockedSites: BlockedSite[]) {
+    chrome.tabs.query({}, tabs => {
+      tabs.forEach(tab => {
+        if (tab.url) {
+          const isBlocked = blockedSites.some(site => matchesWildcard(tab.url!, site.pattern));
+          if (isBlocked) {
+            chrome.tabs.remove(tab.id!);
+          }
         }
       });
-      urlPatternInput.value = '';
+    });
+  }
+
+  async function getBlockedSites(): Promise<BlockedSite[]> {
+    return new Promise(resolve => {
+      chrome.storage.local.get('blockedSites', result => {
+        resolve(result.blockedSites || []);
+      });
+    });
+  }
+
+  function setStatus(message: string, type: 'error' | 'success' | 'info') {
+    const statusBar = document.getElementById('statusBar')!;
+    const statusIcon = document.getElementById('statusIcon')!;
+    const statusMessage = document.getElementById('statusMessage')!;
+
+    if (message) {
+      statusBar.classList.remove('hidden');
+      statusMessage.textContent = message;
+
+      statusBar.classList.remove(
+        'bg-green-100',
+        'text-green-800',
+        'bg-red-100',
+        'text-red-800',
+        'bg-blue-100',
+        'text-blue-800'
+      );
+      statusIcon.classList.remove('text-green-500', 'text-red-500', 'text-blue-500');
+
+      if (type === 'error') {
+        statusBar.classList.add('bg-red-100', 'text-red-800');
+        statusIcon.innerHTML = `
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+        `;
+        statusIcon.classList.add('text-red-500');
+      } else if (type === 'success') {
+        statusBar.classList.add('bg-green-100', 'text-green-800');
+        statusIcon.innerHTML = `
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+        `;
+        statusIcon.classList.add('text-green-500');
+      } else if (type === 'info') {
+        statusBar.classList.add('bg-blue-100', 'text-blue-800');
+        statusIcon.innerHTML = `
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        `;
+        statusIcon.classList.add('text-blue-500');
+      }
+    } else {
+      statusBar.classList.add('hidden');
+      statusMessage.textContent = '';
     }
   }
 
-  addPatternButton.addEventListener('click', async () => {
-    await addPattern();
+  // Message listener for login/logout events
+  chrome.runtime.onMessage.addListener(message => {
+    if (message.action === 'login_success' || message.action === 'logout_success') {
+      const storedToken = localStorage.getItem('token');
+      if (storedToken) {
+        checkSessionAndUpdateUI(storedToken);
+      } else {
+        handleLoggedOutState();
+      }
+      loadStoredDataAndUpdateUI();
+    }
   });
 });
-
-function setStatus(message: string, type: 'error' | 'success' | 'info') {
-  const statusBar = document.getElementById('statusBar')!;
-  const statusIcon = document.getElementById('statusIcon')!;
-  const statusMessage = document.getElementById('statusMessage')!;
-
-  if (message) {
-    statusBar.classList.remove('hidden');
-    statusMessage.textContent = message;
-
-    statusBar.classList.remove(
-      'bg-green-100',
-      'text-green-800',
-      'bg-red-100',
-      'text-red-800',
-      'bg-blue-100',
-      'text-blue-800'
-    );
-    statusIcon.classList.remove('text-green-500', 'text-red-500', 'text-blue-500');
-
-    if (type === 'error') {
-      statusBar.classList.add('bg-red-100', 'text-red-800');
-      statusIcon.innerHTML = `
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-      `;
-      statusIcon.classList.add('text-red-500');
-    } else if (type === 'success') {
-      statusBar.classList.add('bg-green-100', 'text-green-800');
-      statusIcon.innerHTML = `
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-      `;
-      statusIcon.classList.add('text-green-500');
-    } else if (type === 'info') {
-      statusBar.classList.add('bg-blue-100', 'text-blue-800');
-      statusIcon.innerHTML = `
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-      `;
-      statusIcon.classList.add('text-blue-500');
-    }
-  } else {
-    statusBar.classList.add('hidden');
-    statusMessage.textContent = '';
-  }
-}
