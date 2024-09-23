@@ -67,13 +67,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     updateStatusIndicator(true);
     setStatus('Loading...', 'info');
     quickBlockButton.classList.add('hidden');
+    proStatus.classList.add('hidden'); // Hide Pro status by default
   }
 
   async function loadCachedDataAndUpdateUI() {
     cachedProStatus = await getCachedProStatus();
     cachedBlockedSites = await getCachedBlockedSites();
 
-    updateProStatusUI(cachedProStatus);
+    const token = localStorage.getItem('token');
+    updateProStatusUI(token ? cachedProStatus : false);
+
     if (cachedBlockedSites) {
       renderPatternList(cachedBlockedSites);
       updateCurrentDomainInfo(cachedBlockedSites);
@@ -87,14 +90,32 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   async function loadAndRenderPatterns() {
-    const isPaid = await isPaidUser();
-    updateProStatusUI(isPaid);
-    if (isPaid) {
-      await loadPatternsFromServer();
-    } else {
-      const blockedSites = await getBlockedSites();
-      renderPatternList(blockedSites);
-      updateCurrentDomainInfo(blockedSites);
+    try {
+      const token = localStorage.getItem('token');
+      const isPaid = token ? await isPaidUser() : false;
+      updateProStatusUI(isPaid);
+
+      if (token) {
+        // User is logged in, load patterns from server
+        await loadPatternsFromServer();
+      } else {
+        // User is not logged in, load patterns from local storage
+        const blockedSites = await getBlockedSites();
+        renderPatternList(blockedSites);
+        updateCurrentDomainInfo(blockedSites);
+      }
+
+      // Apply pattern limit for free users
+      if (!isPaid) {
+        const blockedSites = await getBlockedSites();
+        const limitedSites = blockedSites.slice(0, 5); // Limit to 5 patterns for free users
+        await chrome.storage.local.set({ blockedSites: limitedSites });
+        renderPatternList(limitedSites);
+        updateCurrentDomainInfo(limitedSites);
+      }
+    } catch (error) {
+      console.error('Error in loadAndRenderPatterns:', error);
+      setStatus('Failed to load patterns', 'error');
     }
   }
 
@@ -227,7 +248,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   async function renderPatternList(blockedSites: BlockedSite[]) {
     patternList.innerHTML = '';
-    const isPaid = cachedProStatus !== null ? cachedProStatus : await isPaidUser();
+    const token = localStorage.getItem('token');
+    const isPaid = token
+      ? cachedProStatus !== null
+        ? cachedProStatus
+        : await isPaidUser()
+      : false;
     updatePatternCounter(blockedSites.length, isPaid);
 
     blockedSites.forEach((site, index) => {
@@ -395,12 +421,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   function updateProStatusUI(isPro: boolean | null) {
-    if (isPro === null) {
+    const token = localStorage.getItem('token');
+    if (!token || isPro === false) {
       proStatus.classList.add('hidden');
-    } else if (isPro) {
+    } else if (isPro === true) {
       proStatus.classList.remove('hidden');
-    } else {
-      proStatus.classList.add('hidden');
     }
   }
 

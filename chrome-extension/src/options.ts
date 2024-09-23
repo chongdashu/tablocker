@@ -228,6 +228,7 @@ timeRangeSelect.addEventListener('change', updateStats);
 document.addEventListener('DOMContentLoaded', async () => {
   const proStatus = document.getElementById('proStatus') as HTMLSpanElement;
   const isPaid = await isPaidUser();
+  console.warn('isPaid=', isPaid);
 
   if (isPaid) {
     proStatus.classList.remove('hidden');
