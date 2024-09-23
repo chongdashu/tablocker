@@ -39,7 +39,7 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
     sig_header = request.headers.get("stripe-signature")
 
     try:
-        event = stripe.Webhook.construct_event(
+        event = stripe.Webhook.construct_event(  # type: ignore
             payload=payload,
             sig_header=sig_header,
             secret=stripe_webhook_secret,
