@@ -459,15 +459,20 @@ document.addEventListener('DOMContentLoaded', async () => {
       statusBar.classList.remove('hidden');
       statusMessage.textContent = message;
 
-      statusBar.classList.remove(
-        'bg-green-100',
-        'text-green-800',
-        'bg-red-100',
-        'text-red-800',
-        'bg-blue-100',
-        'text-blue-800'
+      statusBar.className = ''; // Reset classes
+      statusBar.classList.add(
+        'fixed',
+        'top-0',
+        'left-0',
+        'right-0',
+        'p-2',
+        'rounded-b-lg',
+        'shadow-md',
+        'transition-all',
+        'duration-300',
+        'ease-in-out',
+        'z-50'
       );
-      statusIcon.classList.remove('text-green-500', 'text-red-500', 'text-blue-500');
 
       if (type === 'error') {
         statusBar.classList.add('bg-red-100', 'text-red-800');
@@ -488,9 +493,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         `;
         statusIcon.classList.add('text-blue-500');
       }
+
+      // Automatically hide the status bar after 5 seconds
+      setTimeout(() => {
+        statusBar.classList.add('hidden');
+      }, 5000);
     } else {
       statusBar.classList.add('hidden');
-      statusMessage.textContent = '';
     }
   }
 

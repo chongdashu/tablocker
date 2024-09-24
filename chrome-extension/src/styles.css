@@ -1,3 +1,31 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+#statusBar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  padding: 4px 8px;
+  border-bottom-left-radius: 8px;
+  border-bottom-right-radius: 8px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease-in-out;
+  z-index: 50;
+  font-size: 0.75rem;
+  line-height: 1rem;
+}
+
+#statusBar.hidden {
+  transform: translateY(-100%);
+}
+
+body {
+  padding-top: 24px; /* Adjust this value based on the new height of your status bar */
+}
+
+#statusIcon {
+  width: 12px;
+  height: 12px;
+}
