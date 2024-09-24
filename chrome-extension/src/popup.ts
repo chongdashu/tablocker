@@ -149,7 +149,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   function handleLoggedOutState() {
     logoutButton.classList.add('hidden');
     updateProStatusUI(false);
-    setStatus('Please log in to access all features', 'info');
+    setStatus('Sign up or log in to sync blocked sites & settings.', 'info');
   }
 
   function handleToggleClick() {
