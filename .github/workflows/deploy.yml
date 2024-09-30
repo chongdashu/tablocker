@@ -105,7 +105,16 @@ jobs:
 
             echo "Stopping and removing existing containers..."
             docker-compose down || true
-            docker rm -f untab-frontend-1 untab-backend-1 || true
+
+            # Wait for containers to be removed
+            for i in {1..5}; do
+              if [ "$(docker ps -aq -f name=untab-frontend-1)" ] || [ "$(docker ps -aq -f name=untab-backend-1)" ]; then
+                echo "Waiting for containers to be removed..."
+                sleep 1
+              else
+                break
+              fi
+            done
 
             echo "Starting new containers with updated environment variables..."
 
