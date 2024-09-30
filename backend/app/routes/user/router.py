@@ -74,7 +74,7 @@ async def sync_blocklist(
         ).delete(synchronize_session=False)
 
     logger.info(
-        f"Adding {new_patterns_count} new patterns and removing {len(patterns_to_remove)} patterns for user {current_user.supabase_user_id}"
+        f"Adding {new_patterns_count=}, removing {len(patterns_to_remove)=} for {current_user.supabase_user_id=}"
     )
     db.commit()
 
