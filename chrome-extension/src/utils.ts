@@ -20,7 +20,8 @@ import { BlockedSite, SyncBlockedPatternsResponse } from './types';
 
 export async function isPaidUser(): Promise<boolean> {
   try {
-    const token = localStorage.getItem('token');
+    const result = await chrome.storage.local.get('token');
+    const token = result.token;
     if (!token) {
       return false; // No token, user is not logged in
     }
@@ -55,7 +56,8 @@ export async function syncBlockedPatterns(
   patterns: BlockedSite[]
 ): Promise<SyncBlockedPatternsResponse> {
   try {
-    const token = localStorage.getItem('token');
+    const result = await chrome.storage.local.get('token');
+    const token = result.token;
     if (!token) {
       throw new Error('No token found');
     }
@@ -83,7 +85,8 @@ export async function syncBlockedPatterns(
 
 export async function getBlockedPatterns(): Promise<BlockedSite[]> {
   try {
-    const token = localStorage.getItem('token');
+    const result = await chrome.storage.local.get('token');
+    const token = result.token;
     if (!token) {
       throw new Error('No token found');
     }
@@ -133,4 +136,33 @@ export function mergePatterns(
   });
 
   return mergedPatterns;
+}
+
+export async function syncStats(syncRequest: any) {
+  try {
+    const result = await chrome.storage.local.get('token');
+    const token = result.token;
+    if (!token) {
+      throw new Error('No token found');
+    }
+
+    const response = await fetch(`${BASE_URL}/api/user/stats/sync`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(syncRequest),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return { success: true, message: data.message };
+  } catch (error) {
+    console.error('Error in syncStats:', error);
+    return { success: false, message: (error as Error).message };
+  }
 }

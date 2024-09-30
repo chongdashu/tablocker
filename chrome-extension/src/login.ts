@@ -15,13 +15,15 @@ document.addEventListener('DOMContentLoaded', async () => {
   const emailInput = document.getElementById('email') as HTMLInputElement;
 
   // Load remembered email if it exists
-  const rememberedEmail = localStorage.getItem('rememberedEmail');
-  if (rememberedEmail) {
-    if (emailInput) {
-      emailInput.value = rememberedEmail;
+  chrome.storage.local.get('rememberedEmail', result => {
+    const rememberedEmail = result.rememberedEmail;
+    if (rememberedEmail) {
+      if (emailInput) {
+        emailInput.value = rememberedEmail;
+      }
+      rememberEmailCheckbox.checked = true;
     }
-    rememberEmailCheckbox.checked = true;
-  }
+  });
 
   loginButton.addEventListener('click', handleLogin);
   signupButton.addEventListener('click', handleSignup);
@@ -31,7 +33,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   await checkSession();
 
   async function checkSession() {
-    const storedToken = localStorage.getItem('token');
+    const storedToken = await new Promise<string | null>(resolve =>
+      chrome.storage.local.get('token', result => resolve(result.token || null))
+    );
     if (storedToken) {
       try {
         const response = await axios.get(`${BASE_URL}/api/auth/session`, {
@@ -89,9 +93,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Remember email if checkbox is checked
     if (rememberEmailCheckbox.checked) {
-      localStorage.setItem('rememberedEmail', email);
+      await chrome.storage.local.set({ rememberedEmail: email });
     } else {
-      localStorage.removeItem('rememberedEmail');
+      await chrome.storage.local.remove('rememberedEmail');
     }
 
     try {
@@ -103,7 +107,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         withCredentials: true,
       });
       setLoading('loginButton', false);
-      localStorage.setItem('token', data.access_token);
+      await chrome.storage.local.set({ token: data.access_token });
       const isPaid = await isPaidUser();
       setStatus('Login successful!', 'success');
       chrome.runtime.sendMessage({ action: 'login_success' });
@@ -132,7 +136,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         { withCredentials: true }
       );
       setLoading('signupButton', false);
-      localStorage.setItem('token', data.access_token);
+      await chrome.storage.local.set({ token: data.access_token });
       setStatus('Signup successful! Please verify your email.', 'success');
     } catch (error: any) {
       setLoading('signupButton', false);
@@ -143,7 +147,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   async function handleLogout() {
     try {
-      const token = localStorage.getItem('token');
+      const token = await new Promise<string | null>(resolve =>
+        chrome.storage.local.get('token', result => resolve(result.token || null))
+      );
       await axios.post(
         `${BASE_URL}/api/auth/logout`,
         {},
@@ -154,7 +160,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           withCredentials: true,
         }
       );
-      localStorage.removeItem('token');
+      await chrome.storage.local.remove('token');
       showLoggedOutState();
       setStatus('Logged out successfully', 'success');
       chrome.runtime.sendMessage({ action: 'logout_success' });

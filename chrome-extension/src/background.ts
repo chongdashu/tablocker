@@ -1,5 +1,5 @@
 import type { BlockedDetail, BlockedPattern, BlockedSite, DailyStats, TabStats } from './types';
-import { matchesWildcard } from './utils';
+import { matchesWildcard, syncStats } from './utils';
 
 (async function () {
   // Wait for the Chrome APIs to be available
@@ -18,6 +18,9 @@ import { matchesWildcard } from './utils';
 
     // Set initial badge
     updateBadge();
+
+    // Schedule periodic sync
+    schedulePeriodicSync();
 
     // Listen for new tab creation
     chrome.tabs.onCreated.addListener(tab => {
@@ -134,7 +137,10 @@ import { matchesWildcard } from './utils';
         // Update blocked details
         blockedDetails.push({ url, pattern, timestamp });
         console.log('Saving blocked details:', blockedDetails);
-        chrome.storage.local.set({ tabStats, dailyStats, blockedPatterns, blockedDetails });
+        chrome.storage.local.set({ tabStats, dailyStats, blockedPatterns, blockedDetails }, () => {
+          // Perform sync after updating local storage
+          performSync();
+        });
       }
     );
   }
@@ -197,4 +203,58 @@ import { matchesWildcard } from './utils';
       updateBadge(changes.isBlocking.newValue);
     }
   });
+
+  // Add this new function for periodic syncing
+  function schedulePeriodicSync() {
+    // Sync every 6 hours (21600000 milliseconds)
+    const SYNC_INTERVAL = 6 * 60 * 60 * 1000;
+
+    setInterval(async () => {
+      try {
+        await performSync();
+      } catch (error) {
+        console.error('Error during periodic sync:', error);
+      }
+    }, SYNC_INTERVAL);
+
+    // Also perform a sync when the browser starts up
+    performSync();
+  }
+
+  async function performSync() {
+    console.log('Performing sync');
+    try {
+      const { tabStats, dailyStats, blockedPatterns } = await chrome.storage.local.get([
+        'tabStats',
+        'dailyStats',
+        'blockedPatterns',
+      ]);
+
+      const syncRequest = {
+        user_stats: {
+          total_tabs_blocked: tabStats?.blocked || 0,
+          last_updated: new Date().toISOString(),
+        },
+        daily_stats: Object.entries(dailyStats || {}).map(([date, stats]) => ({
+          date,
+          tabs_blocked: (stats as DailyStats).blocked,
+        })),
+        blocked_pattern_stats: Object.entries(blockedPatterns || {}).map(([pattern, stats]) => ({
+          pattern,
+          count: (stats as BlockedPattern[string]).count,
+        })),
+      };
+
+      const response = await syncStats(syncRequest);
+      if (response.success) {
+        console.log('Sync successful:', response.message);
+        // Update last sync time
+        chrome.storage.local.set({ lastSyncTime: new Date().toISOString() });
+      } else {
+        console.error('Sync failed:', response.message);
+      }
+    } catch (error) {
+      console.error('Error during sync:', error);
+    }
+  }
 })();

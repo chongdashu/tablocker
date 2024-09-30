@@ -44,7 +44,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   loadCachedDataAndUpdateUI();
 
   // Check session and perform network-dependent operations
-  const storedToken = localStorage.getItem('token');
+  const storedToken = await new Promise<string | null>(resolve =>
+    chrome.storage.local.get('token', result => resolve(result.token || null))
+  );
   if (storedToken) {
     checkSessionAndUpdateUI(storedToken);
   } else {
@@ -74,7 +76,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     cachedProStatus = await getCachedProStatus();
     cachedBlockedSites = await getCachedBlockedSites();
 
-    const token = localStorage.getItem('token');
+    const token = await new Promise<string | null>(resolve =>
+      chrome.storage.local.get('token', result => resolve(result.token || null))
+    );
     updateProStatusUI(token ? cachedProStatus : false);
 
     if (cachedBlockedSites) {
@@ -91,7 +95,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   async function loadAndRenderPatterns() {
     try {
-      const token = localStorage.getItem('token');
+      const token = await new Promise<string | null>(resolve =>
+        chrome.storage.local.get('token', result => resolve(result.token || null))
+      );
       const isPaid = token ? await isPaidUser() : false;
       updateProStatusUI(isPaid);
 
@@ -248,7 +254,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   async function renderPatternList(blockedSites: BlockedSite[]) {
     patternList.innerHTML = '';
-    const token = localStorage.getItem('token');
+    const token = await new Promise<string | null>(resolve =>
+      chrome.storage.local.get('token', result => resolve(result.token || null))
+    );
     const isPaid = token
       ? cachedProStatus !== null
         ? cachedProStatus
@@ -420,8 +428,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     chrome.storage.local.set({ cachedBlockedSites: sites });
   }
 
-  function updateProStatusUI(isPro: boolean | null) {
-    const token = localStorage.getItem('token');
+  async function updateProStatusUI(isPro: boolean | null) {
+    const token = await new Promise<string | null>(resolve =>
+      chrome.storage.local.get('token', result => resolve(result.token || null))
+    );
     if (!token || isPro === false) {
       proStatus.classList.add('hidden');
     } else if (isPro === true) {
@@ -504,9 +514,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   // Message listener for login/logout events
-  chrome.runtime.onMessage.addListener(message => {
+  chrome.runtime.onMessage.addListener(async message => {
     if (message.action === 'login_success' || message.action === 'logout_success') {
-      const storedToken = localStorage.getItem('token');
+      const storedToken = await new Promise<string | null>(resolve =>
+        chrome.storage.local.get('token', result => resolve(result.token || null))
+      );
       if (storedToken) {
         checkSessionAndUpdateUI(storedToken);
       } else {

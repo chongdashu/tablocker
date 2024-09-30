@@ -1,6 +1,14 @@
 import { Chart, ChartConfiguration } from 'chart.js/auto';
-import { BlockedDetail, BlockedPattern, DailyStats, TabStats } from './types';
-import { isPaidUser } from './utils';
+import {
+  BlockedDetail,
+  BlockedPattern,
+  BlockedPatternStat,
+  DailyStat,
+  DailyStats,
+  SyncStatsRequest,
+  TabStats,
+} from './types';
+import { isPaidUser, syncStats } from './utils';
 
 const blockedCountElement = document.getElementById('blockedCount') as HTMLSpanElement;
 const enableBadgesCheckbox = document.getElementById('enableBadges') as HTMLInputElement;
@@ -223,6 +231,101 @@ enableBadgesCheckbox.addEventListener('change', () => {
 });
 
 timeRangeSelect.addEventListener('change', updateStats);
+
+// Add this new function to handle stats syncing
+async function handleSyncStats() {
+  try {
+    const tabStats = (await chrome.storage.local.get('tabStats')) as { tabStats: TabStats };
+    const dailyStats = (await chrome.storage.local.get('dailyStats')) as {
+      dailyStats: { [date: string]: DailyStats };
+    };
+    const blockedPatternStats = (await chrome.storage.local.get('blockedPatterns')) as {
+      blockedPatterns: BlockedPattern;
+    };
+
+    const syncRequest: SyncStatsRequest = {
+      user_stats: {
+        total_tabs_blocked: tabStats.tabStats?.blocked || 0,
+        last_updated: new Date().toISOString(),
+      },
+      daily_stats: Object.entries(dailyStats.dailyStats || {}).map(
+        ([date, stats]): DailyStat => ({
+          date,
+          tabs_blocked: stats.blocked,
+        })
+      ),
+      blocked_pattern_stats: Object.entries(blockedPatternStats.blockedPatterns || {}).map(
+        ([pattern, stats]): BlockedPatternStat => ({
+          pattern,
+          count: stats.count,
+        })
+      ),
+    };
+
+    const response = await syncStats(syncRequest);
+    if (response.success) {
+      setStatus('Stats synced successfully', 'success');
+      updateLastSyncTime();
+    } else {
+      throw new Error('Sync was not successful');
+    }
+  } catch (error) {
+    console.error('Error syncing stats:', error);
+    setStatus('Failed to sync stats', 'error');
+  }
+}
+
+// Implement the setStatus method
+function setStatus(message: string, type: string) {
+  const statusBar = document.getElementById('statusBar');
+  const statusIcon = document.getElementById('statusIcon');
+  const statusMessage = document.getElementById('statusMessage');
+
+  if (statusBar && statusIcon && statusMessage) {
+    statusBar.classList.remove('hidden');
+    statusMessage.textContent = message;
+
+    if (type === 'success') {
+      statusIcon.innerHTML =
+        '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>';
+      statusBar.style.backgroundColor = '#10B981';
+    } else if (type === 'error') {
+      statusIcon.innerHTML =
+        '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>';
+      statusBar.style.backgroundColor = '#EF4444';
+    } else {
+      statusIcon.innerHTML = '';
+      statusBar.style.backgroundColor = '';
+    }
+  }
+}
+
+function updateLastSyncTime() {
+  const lastSyncElement = document.getElementById('lastSync');
+  if (lastSyncElement) {
+    const now = new Date();
+    lastSyncElement.textContent = `Last synced: ${now.toLocaleString()}`;
+    chrome.storage.local.set({ lastSyncTime: now.toISOString() });
+  }
+}
+
+// Modify the existing initializeUI function
+function initializeUI() {
+  // ... existing code ...
+
+  // Add sync button event listener
+  const syncButton = document.getElementById('syncButton') as HTMLButtonElement;
+  syncButton.addEventListener('click', handleSyncStats);
+
+  // Load and display last sync time
+  chrome.storage.local.get('lastSyncTime', result => {
+    const lastSyncElement = document.getElementById('lastSync');
+    if (lastSyncElement && result.lastSyncTime) {
+      const lastSync = new Date(result.lastSyncTime);
+      lastSyncElement.textContent = `Last synced: ${lastSync.toLocaleString()}`;
+    }
+  });
+}
 
 // Initialize the page
 document.addEventListener('DOMContentLoaded', async () => {
