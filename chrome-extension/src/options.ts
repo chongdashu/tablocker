@@ -234,7 +234,17 @@ timeRangeSelect.addEventListener('change', updateStats);
 
 // Add this new function to handle stats syncing
 async function handleSyncStats() {
+  const syncButton = document.getElementById('syncButton') as HTMLButtonElement;
+  const syncText = syncButton.querySelector('.sync-text') as HTMLSpanElement;
+  const spinner = syncButton.querySelector('svg') as SVGElement;
+
   try {
+    // Disable button and show spinner
+    syncButton.disabled = true;
+    syncButton.classList.add('opacity-50', 'cursor-not-allowed');
+    syncText.classList.add('hidden');
+    spinner.classList.remove('hidden');
+
     const tabStats = (await chrome.storage.local.get('tabStats')) as { tabStats: TabStats };
     const dailyStats = (await chrome.storage.local.get('dailyStats')) as {
       dailyStats: { [date: string]: DailyStats };
@@ -272,6 +282,12 @@ async function handleSyncStats() {
   } catch (error) {
     console.error('Error syncing stats:', error);
     setStatus('Failed to sync stats', 'error');
+  } finally {
+    // Re-enable button and hide spinner
+    syncButton.disabled = false;
+    syncButton.classList.remove('opacity-50', 'cursor-not-allowed');
+    syncText.classList.remove('hidden');
+    spinner.classList.add('hidden');
   }
 }
 
@@ -311,7 +327,13 @@ function updateLastSyncTime() {
 
 // Modify the existing initializeUI function
 function initializeUI() {
-  // ... existing code ...
+  updateStats();
+  updateSettings();
+  listenForStorageChanges();
+
+  // Set Analytics tab as active by default
+  const analyticsTab = document.querySelector('[data-tab="analytics"]') as HTMLElement;
+  analyticsTab.click();
 
   // Add sync button event listener
   const syncButton = document.getElementById('syncButton') as HTMLButtonElement;
@@ -325,6 +347,15 @@ function initializeUI() {
       lastSyncElement.textContent = `Last synced: ${lastSync.toLocaleString()}`;
     }
   });
+
+  // Set up event listeners
+  enableBadgesCheckbox.addEventListener('change', () => {
+    chrome.storage.sync.set({
+      settings: { enableBadges: enableBadgesCheckbox.checked },
+    });
+  });
+
+  timeRangeSelect.addEventListener('change', updateStats);
 }
 
 // Initialize the page
@@ -337,11 +368,5 @@ document.addEventListener('DOMContentLoaded', async () => {
     proStatus.classList.remove('hidden');
   }
 
-  updateStats();
-  updateSettings();
-  listenForStorageChanges();
-
-  // Set Analytics tab as active by default
-  const analyticsTab = document.querySelector('[data-tab="analytics"]') as HTMLElement;
-  analyticsTab.click();
+  initializeUI();
 });
