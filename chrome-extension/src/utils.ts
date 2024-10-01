@@ -15,35 +15,31 @@ export function matchesWildcard(str: string, pattern: string): boolean {
 // Debug environment variable
 const DEBUG_IS_PAID_USER = true;
 
+import axios from 'axios';
 import { BASE_URL } from './config';
 import { BlockedSite, SyncBlockedPatternsResponse } from './types';
 
 export async function isPaidUser(): Promise<boolean> {
-  try {
-    const result = await chrome.storage.local.get('token');
-    const token = result.token;
-    if (!token) {
-      return false; // No token, user is not logged in
-    }
-
-    const response = await fetch(`${BASE_URL}/api/auth/session`, {
-      method: 'GET',
-      credentials: 'include',
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to fetch session');
-    }
-
-    const data: SessionResponse = await response.json();
-    return data.is_paying || false; // Ensure we return false if is_paying is undefined
-  } catch (error) {
-    console.error('Error checking paid status:', error);
-    return false;
+  // Replace local token retrieval with getValidAccessToken
+  const token = await getValidAccessToken();
+  if (!token) {
+    return false; // No token, user is not logged in
   }
+
+  const response = await fetch(`${BASE_URL}/api/auth/session`, {
+    method: 'GET',
+    credentials: 'include',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch session');
+  }
+
+  const data: SessionResponse = await response.json();
+  return data.is_paying || false; // Ensure we return false if is_paying is undefined
 }
 
 interface SessionResponse {
@@ -55,58 +51,48 @@ interface SessionResponse {
 export async function syncBlockedPatterns(
   patterns: BlockedSite[]
 ): Promise<SyncBlockedPatternsResponse> {
-  try {
-    const result = await chrome.storage.local.get('token');
-    const token = result.token;
-    if (!token) {
-      throw new Error('No token found');
-    }
-
-    const response = await fetch(`${BASE_URL}/api/user/blocklist/sync`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ patterns }),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.detail || 'Failed to sync blocked patterns');
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error('Error syncing blocked patterns:', error);
-    throw error;
+  // Replace local token retrieval with getValidAccessToken
+  const token = await getValidAccessToken();
+  if (!token) {
+    throw new Error('No token found');
   }
+
+  const response = await fetch(`${BASE_URL}/api/user/blocklist/sync`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ patterns }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.detail || 'Failed to sync blocked patterns');
+  }
+
+  return await response.json();
 }
 
 export async function getBlockedPatterns(): Promise<BlockedSite[]> {
-  try {
-    const result = await chrome.storage.local.get('token');
-    const token = result.token;
-    if (!token) {
-      throw new Error('No token found');
-    }
-
-    const response = await fetch(`${BASE_URL}/api/user/blocklist`, {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to get blocked patterns');
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error('Error getting blocked patterns:', error);
-    throw error;
+  // Replace local token retrieval with getValidAccessToken
+  const token = await getValidAccessToken();
+  if (!token) {
+    throw new Error('No token found');
   }
+
+  const response = await fetch(`${BASE_URL}/api/user/blocklist`, {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to get blocked patterns');
+  }
+
+  return await response.json();
 }
 
 // export function setIsPaidUser(isPaid: boolean): Promise<void> {
@@ -139,30 +125,53 @@ export function mergePatterns(
 }
 
 export async function syncStats(syncRequest: any) {
-  try {
-    const result = await chrome.storage.local.get('token');
-    const token = result.token;
-    if (!token) {
-      throw new Error('No token found');
-    }
-
-    const response = await fetch(`${BASE_URL}/api/user/stats/sync`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(syncRequest),
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const data = await response.json();
-    return { success: true, message: data.message };
-  } catch (error) {
-    console.error('Error in syncStats:', error);
-    return { success: false, message: (error as Error).message };
+  // Replace local token retrieval with getValidAccessToken
+  const token = await getValidAccessToken();
+  if (!token) {
+    throw new Error('No token found');
   }
+
+  const response = await fetch(`${BASE_URL}/api/user/stats/sync`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(syncRequest),
+  });
+
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+
+  const data = await response.json();
+  return { success: true, message: data.message };
+}
+
+export async function getValidAccessToken(): Promise<string | null> {
+  const { token, refreshToken, tokenExpiry } = await new Promise<{
+    token?: string;
+    refreshToken?: string;
+    tokenExpiry?: number;
+  }>(resolve => chrome.storage.local.get(['token', 'refreshToken', 'tokenExpiry'], resolve));
+
+  if (token && tokenExpiry && Date.now() < tokenExpiry) {
+    return token;
+  } else if (refreshToken) {
+    try {
+      const { data } = await axios.post(`${BASE_URL}/api/auth/refresh`, {
+        refresh_token: refreshToken,
+      });
+      await chrome.storage.local.set({
+        token: data.access_token,
+        refreshToken: data.refresh_token,
+        tokenExpiry: Date.now() + data.expires_in * 1000,
+      });
+      return data.access_token;
+    } catch (error: any) {
+      console.error('Token refresh error:', error.response?.data?.detail || error.message);
+      return null;
+    }
+  }
+  return null;
 }

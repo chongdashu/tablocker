@@ -7,10 +7,14 @@ class Token(BaseModel):
 
     Attributes:
         access_token (str): The access token string.
+        refresh_token (str): The refresh token string.
+        expires_in (int): Token expiry time in seconds.
         token_type (str): The type of the token (e.g., "bearer").
     """
 
     access_token: str
+    refresh_token: str  # {{ added }}
+    expires_in: int  # {{ added }}
     token_type: str
 
 
@@ -61,3 +65,27 @@ class UserCreate(BaseModel):
                 "password": "strongpassword123",
             }
         }
+
+
+class RefreshTokenRequest(BaseModel):
+    """
+    Represents a request to refresh the access token.
+
+    Attributes:
+        refresh_token (str): The refresh token provided by the client.
+    """
+
+    refresh_token: str
+
+
+class RefreshTokenResponse(BaseModel):
+    """
+    Represents the response containing the new access token.
+
+    Attributes:
+        access_token (str): The new access token.
+        token_type (str): The type of the token (e.g., "bearer").
+    """
+
+    access_token: str
+    token_type: str

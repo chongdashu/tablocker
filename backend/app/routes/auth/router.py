@@ -18,6 +18,7 @@ from supabase import create_client
 
 from database.manager import get_db
 from database.models import PayingUser
+from routes.auth.api import RefreshTokenRequest  # New imports
 from routes.auth.api import SessionResponse
 from routes.auth.api import Token
 from routes.auth.api import UserCreate
@@ -158,9 +159,13 @@ async def register(user_create: UserCreate) -> Token:
         # User created and automatically signed in
         logger.info(f"User successfully registered and signed in: {user_create.username}")
         access_token = response.session.access_token
+        refresh_token = response.session.refresh_token  # {{ added }}
+        expires_in = response.session.expires_in  # {{ added }}
         token_type = response.session.token_type
 
-        return Token(access_token=access_token, token_type=token_type)
+        return Token(
+            access_token=access_token, refresh_token=refresh_token, expires_in=expires_in, token_type=token_type
+        )  # {{ modified }}
 
     except Exception as e:
         # Handle any errors that occur during registration
@@ -210,11 +215,15 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = 
             )
 
         access_token = response.session.access_token
+        refresh_token = response.session.refresh_token  # {{ added }}
+        expires_in = response.session.expires_in  # {{ added }}
         token_type = response.session.token_type
 
         logger.info(f"access_token: {access_token}")
 
-        return Token(access_token=access_token, token_type=token_type)
+        return Token(
+            access_token=access_token, refresh_token=refresh_token, expires_in=expires_in, token_type=token_type
+        )  # {{ modified }}
 
     except Exception as e:
         raise HTTPException(
@@ -262,3 +271,39 @@ async def logout() -> Dict[str, str]:
     # In a stateless JWT system, logout is typically handled client-side
     # by removing the token. Here we can add any server-side logout logic if needed.
     return {"message": "Logged out successfully"}
+
+
+@router.post("/refresh", response_model=Token)
+async def refresh_token(request: RefreshTokenRequest) -> Token:
+    """
+    Refresh the access token using the refresh token.
+
+    Args:
+        request (RefreshTokenRequest): The refresh token request data.
+
+    Returns:
+        Token: The new access token along with a new refresh token and expiry.
+    """
+    logger.info("Attempting to refresh access token")
+    try:
+        response = supabase_client.auth.refresh_session(request.refresh_token)
+        if response.session is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Refresh token invalid",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        access_token = response.session.access_token
+        refresh_token = response.session.refresh_token  # {{ added }}
+        expires_in = response.session.expires_in  # {{ added }}
+        token_type = response.session.token_type
+        return Token(
+            access_token=access_token, refresh_token=refresh_token, expires_in=expires_in, token_type=token_type
+        )  # {{ modified }}
+    except Exception as e:
+        logger.error(f"Token refresh failed: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token refresh failed",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
