@@ -8,7 +8,17 @@ import {
 } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { motion, useScroll } from "framer-motion";
-import { ArrowRight, Check, Chrome, Play, User, Zap } from "lucide-react";
+import {
+  ArrowRight,
+  Check,
+  CheckCircleIcon,
+  Chrome,
+  PlusCircleIcon,
+  SmileIcon,
+  User,
+  Zap,
+} from "lucide-react";
+import { ExtensionMockup } from "./ExtensionMockup";
 
 export function LandingComponent() {
   const { scrollYProgress } = useScroll();
@@ -177,28 +187,31 @@ export function LandingComponent() {
         </section> */}
 
         {/* How it Works Section */}
-        <section id="how-it-works" className="container mx-auto px-4 py-20">
-          <h2 className="text-3xl font-bold mb-12 text-center">
+        <section
+          id="how-it-works"
+          className="container mx-auto px-4 py-20 bg-gray-50 rounded-lg shadow-md"
+        >
+          <h2 className="text-3xl font-bold mb-12 text-center text-purple-700">
             How Un-Tab Works
           </h2>
           <div className="flex flex-col lg:flex-row items-center justify-between space-y-12 lg:space-y-0 lg:space-x-12">
-            <div className="w-full lg:w-1/2">
-              <motion.div
-                className="bg-purple-100 p-8 rounded-2xl shadow-lg overflow-hidden relative"
-                whileHover={{ scale: 1.05 }}
-                transition={{ duration: 0.3 }}
-              >
-                <div className="aspect-w-16 aspect-h-9 bg-purple-200 flex items-center justify-center">
-                  <Play className="w-16 h-16 text-purple-600" />
-                </div>
-                <div className="absolute inset-0 bg-gradient-to-t from-purple-600/20 to-transparent pointer-events-none"></div>
-              </motion.div>
+            <div className="w-full lg:w-1/2 flex justify-center">
+              <ExtensionMockup />
             </div>
             <div className="w-full lg:w-1/2">
-              <ol className="list-decimal list-inside space-y-4 text-lg">
-                <li>Install from the Chrome Web Store</li>
-                <li>Add the websites you want to block</li>
-                <li>Enjoy distraction-free browsing</li>
+              <ol className="list-decimal list-inside space-y-4 text-lg text-gray-700 pl-5">
+                <li className="flex items-center">
+                  <CheckCircleIcon className="h-5 w-5 text-green-500 mr-2" />
+                  Install from the Chrome Web Store
+                </li>
+                <li className="flex items-center">
+                  <PlusCircleIcon className="h-5 w-5 text-blue-500 mr-2" />
+                  Add the websites you want to block
+                </li>
+                <li className="flex items-center">
+                  <SmileIcon className="h-5 w-5 text-yellow-500 mr-2" />
+                  Enjoy distraction-free browsing
+                </li>
               </ol>
               <motion.div
                 className="mt-8"
@@ -387,6 +400,11 @@ export function LandingComponent() {
                 question: "Is the Pro version really a one-time purchase?",
                 answer:
                   "We believe in providing value without recurring costs. The Pro version is a lifetime purchase, giving you unlimited access to all current and future Pro features.",
+              },
+              {
+                question: "What do I get with the Pro version?",
+                answer:
+                  "With the Pro version, you get unlimited blocked lists, allowing you to customize your focus sessions to your heart's content. Additionally, you'll have access to analytics and data visualizations that help you understand your distraction habits and identify areas for improvement. You'll also receive priority support, ensuring that any issues you encounter are resolved quickly. Furthermore, you'll get early access to new features as they're developed, giving you a competitive edge in your productivity journey.",
               },
             ].map((faq, index) => (
               <AccordionItem key={index} value={`item-${index}`}>
