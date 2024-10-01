@@ -4,6 +4,7 @@ import './styles.css';
 import { BlockedSite } from './types';
 import {
   getBlockedPatterns,
+  getValidAccessToken,
   isPaidUser,
   matchesWildcard,
   mergePatterns,
@@ -44,9 +45,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   loadCachedDataAndUpdateUI();
 
   // Check session and perform network-dependent operations
-  const storedToken = await new Promise<string | null>(resolve =>
-    chrome.storage.local.get('token', result => resolve(result.token || null))
-  );
+  const storedToken = await getValidAccessToken();
   if (storedToken) {
     checkSessionAndUpdateUI(storedToken);
   } else {
@@ -76,9 +75,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     cachedProStatus = await getCachedProStatus();
     cachedBlockedSites = await getCachedBlockedSites();
 
-    const token = await new Promise<string | null>(resolve =>
-      chrome.storage.local.get('token', result => resolve(result.token || null))
-    );
+    const token = await getValidAccessToken();
     const isPaid = token ? cachedProStatus : false;
     updateProStatusUI(isPaid);
 
@@ -96,9 +93,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   async function loadAndRenderPatterns() {
     try {
-      const token = await new Promise<string | null>(resolve =>
-        chrome.storage.local.get('token', result => resolve(result.token || null))
-      );
+      const token = await getValidAccessToken();
       const isPaid = token ? await isPaidUser() : false;
       updateProStatusUI(isPaid);
 
@@ -177,9 +172,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   async function handleAddPattern() {
     const pattern = urlPatternInput.value.trim();
     if (pattern) {
-      const token = await new Promise<string | null>(resolve =>
-        chrome.storage.local.get('token', result => resolve(result.token || null))
-      );
+      const token = await getValidAccessToken();
       const isPaid = token ? await isPaidUser() : false;
       const blockedSites = await getBlockedSites();
 
@@ -347,9 +340,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const blockedSites = await getBlockedSites();
     blockedSites.splice(index, 1);
 
-    const token = await new Promise<string | null>(resolve =>
-      chrome.storage.local.get('token', result => resolve(result.token || null))
-    );
+    const token = await getValidAccessToken();
     const isPaid = token ? await isPaidUser() : false;
 
     await chrome.storage.local.set({ blockedSites });
@@ -372,9 +363,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       const syncedPatterns = await syncBlockedPatterns(storedPatterns);
 
       if (syncedPatterns.success) {
-        const token = await new Promise<string | null>(resolve =>
-          chrome.storage.local.get('token', result => resolve(result.token || null))
-        );
+        const token = await getValidAccessToken();
         const isPaid = token ? await isPaidUser() : false;
 
         await chrome.storage.local.set({ blockedSites: syncedPatterns.blocked_patterns });
@@ -530,9 +519,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Message listener for login/logout events
   chrome.runtime.onMessage.addListener(async message => {
     if (message.action === 'login_success' || message.action === 'logout_success') {
-      const storedToken = await new Promise<string | null>(resolve =>
-        chrome.storage.local.get('token', result => resolve(result.token || null))
-      );
+      // Replace local token retrieval with getValidAccessToken
+      const storedToken = await getValidAccessToken();
       if (storedToken) {
         checkSessionAndUpdateUI(storedToken);
       } else {

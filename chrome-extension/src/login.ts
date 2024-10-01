@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { BASE_URL } from './config';
 import './styles.css';
-import { isPaidUser } from './utils';
+import { getValidAccessToken, isPaidUser } from './utils';
 
 document.addEventListener('DOMContentLoaded', async () => {
   const loginButton = document.getElementById('loginButton') as HTMLButtonElement;
@@ -107,7 +107,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         withCredentials: true,
       });
       setLoading('loginButton', false);
-      await chrome.storage.local.set({ token: data.access_token });
+      await chrome.storage.local.set({
+        token: data.access_token,
+        refreshToken: data.refresh_token,
+        tokenExpiry: Date.now() + data.expires_in * 1000,
+      });
       const isPaid = await isPaidUser();
       setStatus('Login successful!', 'success');
       chrome.runtime.sendMessage({ action: 'login_success' });
@@ -136,7 +140,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         { withCredentials: true }
       );
       setLoading('signupButton', false);
-      await chrome.storage.local.set({ token: data.access_token });
+      await chrome.storage.local.set({
+        token: data.access_token,
+        refreshToken: data.refresh_token,
+        tokenExpiry: Date.now() + data.expires_in * 1000,
+      });
       setStatus('Signup successful! Please verify your email.', 'success');
     } catch (error: any) {
       setLoading('signupButton', false);
@@ -147,9 +155,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   async function handleLogout() {
     try {
-      const token = await new Promise<string | null>(resolve =>
-        chrome.storage.local.get('token', result => resolve(result.token || null))
-      );
+      const token = await getValidAccessToken();
       await axios.post(
         `${BASE_URL}/api/auth/logout`,
         {},
@@ -160,7 +166,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           withCredentials: true,
         }
       );
-      await chrome.storage.local.remove('token');
+      await chrome.storage.local.remove(['token', 'refreshToken', 'tokenExpiry']);
       showLoggedOutState();
       setStatus('Logged out successfully', 'success');
       chrome.runtime.sendMessage({ action: 'logout_success' });
