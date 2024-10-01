@@ -54,7 +54,6 @@ export async function GET(req: NextRequest) {
               fontWeight: "bold",
               background: "linear-gradient(to right, #4F46E5, #818CF8)",
               backgroundClip: "text",
-              "-webkit-background-clip": "text",
               color: "transparent",
               marginLeft: 20,
             }}
