@@ -79,10 +79,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     const token = await new Promise<string | null>(resolve =>
       chrome.storage.local.get('token', result => resolve(result.token || null))
     );
-    updateProStatusUI(token ? cachedProStatus : false);
+    const isPaid = token ? cachedProStatus : false;
+    updateProStatusUI(isPaid);
 
     if (cachedBlockedSites) {
-      renderPatternList(cachedBlockedSites);
+      renderPatternList(cachedBlockedSites, isPaid);
       updateCurrentDomainInfo(cachedBlockedSites);
     }
 
@@ -101,23 +102,21 @@ document.addEventListener('DOMContentLoaded', async () => {
       const isPaid = token ? await isPaidUser() : false;
       updateProStatusUI(isPaid);
 
+      let blockedSites = await getBlockedSites();
+
       if (token) {
         // User is logged in, load patterns from server
         await loadPatternsFromServer();
       } else {
-        // User is not logged in, load patterns from local storage
-        const blockedSites = await getBlockedSites();
-        renderPatternList(blockedSites);
+        // User is not logged in, treat as free user
+        renderPatternList(blockedSites, false);
         updateCurrentDomainInfo(blockedSites);
       }
 
-      // Apply pattern limit for free users
+      // Always apply pattern limit UI for non-paid users
       if (!isPaid) {
-        const blockedSites = await getBlockedSites();
-        const limitedSites = blockedSites.slice(0, 5); // Limit to 5 patterns for free users
-        await chrome.storage.local.set({ blockedSites: limitedSites });
-        renderPatternList(limitedSites);
-        updateCurrentDomainInfo(limitedSites);
+        renderPatternList(blockedSites, false);
+        updateCurrentDomainInfo(blockedSites);
       }
     } catch (error) {
       console.error('Error in loadAndRenderPatterns:', error);
@@ -178,7 +177,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   async function handleAddPattern() {
     const pattern = urlPatternInput.value.trim();
     if (pattern) {
-      const isPaid = await isPaidUser();
+      const token = await new Promise<string | null>(resolve =>
+        chrome.storage.local.get('token', result => resolve(result.token || null))
+      );
+      const isPaid = token ? await isPaidUser() : false;
       const blockedSites = await getBlockedSites();
 
       if (!isPaid && blockedSites.length >= 5) {
@@ -191,7 +193,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       try {
         await chrome.storage.local.set({ blockedSites });
-        renderPatternList(blockedSites);
+        renderPatternList(blockedSites, isPaid);
         await syncPatterns();
         setStatus('Pattern added and synced successfully', 'success');
         urlPatternInput.value = '';
@@ -213,8 +215,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         const blockedSites = await getBlockedSites();
         blockedSites.push({ pattern, created_at: new Date().toISOString() });
 
+        const token = await new Promise<string | null>(resolve =>
+          chrome.storage.local.get('token', result => resolve(result.token || null))
+        );
+        const isPaid = token ? await isPaidUser() : false;
+
         await chrome.storage.local.set({ blockedSites });
-        renderPatternList(blockedSites);
+        renderPatternList(blockedSites, isPaid);
         updateCurrentDomainInfo(blockedSites);
         await syncPatterns();
         setStatus('Domain blocked and synced successfully', 'success');
@@ -252,16 +259,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
-  async function renderPatternList(blockedSites: BlockedSite[]) {
+  async function renderPatternList(blockedSites: BlockedSite[], isPaid: boolean | null) {
     patternList.innerHTML = '';
-    const token = await new Promise<string | null>(resolve =>
-      chrome.storage.local.get('token', result => resolve(result.token || null))
-    );
-    const isPaid = token
-      ? cachedProStatus !== null
-        ? cachedProStatus
-        : await isPaidUser()
-      : false;
     updatePatternCounter(blockedSites.length, isPaid);
 
     blockedSites.forEach((site, index) => {
@@ -306,7 +305,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
-  async function updatePatternCounter(count: number, isPaid: boolean) {
+  function updatePatternCounter(count: number, isPaid: boolean | null) {
     if (patternCounter) {
       patternCounter.textContent = isPaid ? `${count}` : `${count}/5`;
     }
@@ -348,8 +347,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     const blockedSites = await getBlockedSites();
     blockedSites.splice(index, 1);
 
+    const token = await new Promise<string | null>(resolve =>
+      chrome.storage.local.get('token', result => resolve(result.token || null))
+    );
+    const isPaid = token ? await isPaidUser() : false;
+
     await chrome.storage.local.set({ blockedSites });
-    renderPatternList(blockedSites);
+    renderPatternList(blockedSites, isPaid);
     await syncPatterns();
   }
 
@@ -368,8 +372,13 @@ document.addEventListener('DOMContentLoaded', async () => {
       const syncedPatterns = await syncBlockedPatterns(storedPatterns);
 
       if (syncedPatterns.success) {
+        const token = await new Promise<string | null>(resolve =>
+          chrome.storage.local.get('token', result => resolve(result.token || null))
+        );
+        const isPaid = token ? await isPaidUser() : false;
+
         await chrome.storage.local.set({ blockedSites: syncedPatterns.blocked_patterns });
-        renderPatternList(syncedPatterns.blocked_patterns);
+        renderPatternList(syncedPatterns.blocked_patterns, isPaid);
         setStatus('Patterns synced successfully', 'success');
       } else {
         throw new Error('Sync was not successful');
@@ -390,8 +399,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       const mergedPatterns = mergePatterns(localPatterns, serverPatterns);
 
+      const token = await new Promise<string | null>(resolve =>
+        chrome.storage.local.get('token', result => resolve(result.token || null))
+      );
+      const isPaid = token ? await isPaidUser() : false;
+
       await chrome.storage.local.set({ blockedSites: mergedPatterns });
-      renderPatternList(mergedPatterns);
+      renderPatternList(mergedPatterns, isPaid);
       updateCurrentDomainInfo(mergedPatterns);
       setCachedBlockedSites(mergedPatterns);
 
