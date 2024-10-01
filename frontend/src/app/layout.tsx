@@ -23,21 +23,21 @@ export const metadata: Metadata = {
       "Stay productive and eliminate distractions with Un-Tab, your reliable tab blocker for a focused work environment.",
     url: "https://untab.xyz",
     type: "website",
-    // images: [
-    //   {
-    //     url: "https://yourappdomain.com/images/og-image.png",
-    //     width: 1200,
-    //     height: 630,
-    //     alt: "Un-Tab Application Screenshot",
-    //   },
-    // ],
+    images: [
+      {
+        url: "https://untab.xyz/og-image",
+        width: 1200,
+        height: 630,
+        alt: "Un-Tab Application Screenshot",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "Un-Tab: Keep Focus & Stop Distractions",
     description:
       "Boost your productivity by blocking distracting websites with Un-Tab. Stay focused and achieve your goals efficiently.",
-    // images: ["https://yourappdomain.com/images/twitter-image.png"],
+    images: ["https://untab.xyz/og-image"],
     creator: "@chongdashu",
   },
   robots: {

@@ -12,7 +12,6 @@ import {
   ArrowRight,
   Check,
   CheckCircleIcon,
-  Chrome,
   PlusCircleIcon,
   SmileIcon,
   User,
@@ -35,8 +34,17 @@ export function LandingComponent() {
       <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-sm shadow-sm">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <div className="flex items-center space-x-2">
-            <Chrome className="w-8 h-8 text-purple-600" />
-            <span className="text-xl font-bold">Un-Tab</span>
+            <svg
+              className="w-8 h-8 text-purple-600"
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+            >
+              <title>UnTab.xyz Logo</title>
+              <path d="M12 0C5.372 0 0 5.372 0 12c0 6.628 5.372 12 12 12s12-5.372 12-12c0-6.628-5.372-12-12-12zm0 22C6.486 22 2 17.514 2 12S6.486 2 12 2s10 4.486 10 10-4.486 10-10 10z" />
+              <path d="M12 5a7 7 0 100 14 7 7 0 000-14zm0 12a5 5 0 110-10 5 5 0 010 10z" />
+            </svg>
+            <span className="text-xl font-bold">UnTab.xyz</span>
           </div>
           <nav className="hidden md:flex items-center space-x-6">
             {/* <button
