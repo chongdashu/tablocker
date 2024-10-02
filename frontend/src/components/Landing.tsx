@@ -318,7 +318,10 @@ export function LandingComponent() {
                   "Early access to new features",
                 ],
                 cta: "Go Pro",
-                ctaLink: "https://buy.stripe.com/4gw9ASguVgiXeByaEE",
+                ctaLink:
+                  process.env.NODE_ENV === "production"
+                    ? "https://buy.stripe.com/4gw9ASguVgiXeByaEE"
+                    : "https://buy.stripe.com/test_3cs4go6HJ8Xs0Fi000",
                 popular: true,
               },
             ].map((plan, index) => (
