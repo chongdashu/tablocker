@@ -14,9 +14,9 @@ import {
   CheckCircleIcon,
   PlusCircleIcon,
   SmileIcon,
-  User,
   Zap,
 } from "lucide-react";
+import Image from "next/image";
 import { ExtensionMockup } from "./ExtensionMockup";
 
 export function LandingComponent() {
@@ -34,16 +34,12 @@ export function LandingComponent() {
       <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-sm shadow-sm">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <div className="flex items-center space-x-2">
-            <svg
-              className="w-8 h-8 text-purple-600"
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              fill="currentColor"
-            >
-              <title>UnTab.xyz Logo</title>
-              <path d="M12 0C5.372 0 0 5.372 0 12c0 6.628 5.372 12 12 12s12-5.372 12-12c0-6.628-5.372-12-12-12zm0 22C6.486 22 2 17.514 2 12S6.486 2 12 2s10 4.486 10 10-4.486 10-10 10z" />
-              <path d="M12 5a7 7 0 100 14 7 7 0 000-14zm0 12a5 5 0 110-10 5 5 0 010 10z" />
-            </svg>
+            <Image
+              src="/images/icon128.png"
+              alt="UnTab.xyz Logo"
+              width={32}
+              height={32}
+            />
             <span className="text-xl font-bold">UnTab.xyz</span>
           </div>
           <nav className="hidden md:flex items-center space-x-6">
@@ -78,7 +74,7 @@ export function LandingComponent() {
               FAQ
             </button>
           </nav>
-          <div className="flex items-center space-x-4">
+          {/* <div className="flex items-center space-x-4">
             <Button variant="ghost" className="hidden md:inline-flex">
               <User className="w-4 h-4 mr-2" />
               Log In
@@ -86,7 +82,7 @@ export function LandingComponent() {
             <Button className="bg-purple-600 hover:bg-purple-700 text-white">
               Get Started
             </Button>
-          </div>
+          </div> */}
         </div>
         <motion.div
           className="h-1 bg-purple-600"
@@ -304,7 +300,7 @@ export function LandingComponent() {
                   "Sync across devices",
                   "Basic analytics",
                 ],
-                cta: "Install to Chrome",
+                cta: "Add to Chrome for FREE",
                 ctaLink:
                   "https://chromewebstore.google.com/detail/productivity-enforcer/ckhdpoeddfocfjinehpedlbcihjjmopn?hl=en",
                 popular: false,
@@ -322,10 +318,7 @@ export function LandingComponent() {
                   "Early access to new features",
                 ],
                 cta: "Go Pro",
-                ctaLink:
-                  process.env.NODE_ENV === "production"
-                    ? "https://buy.stripe.com/4gw9ASguVgiXeByaEE"
-                    : "https://buy.stripe.com/test_3cs4go6HJ8Xs0Fi000",
+                ctaLink: "https://buy.stripe.com/4gw9ASguVgiXeByaEE",
                 popular: true,
               },
             ].map((plan, index) => (
@@ -340,7 +333,7 @@ export function LandingComponent() {
               >
                 {plan.popular && (
                   <div className="absolute top-0 right-0 bg-purple-600 text-white px-3 py-1 rounded-bl-lg rounded-tr-lg text-sm font-semibold">
-                    Lifetime Purchase
+                    Lifetime Purchase. No subscription.
                   </div>
                 )}
                 <h3 className="text-2xl font-bold mb-4">{plan.title}</h3>
@@ -359,7 +352,7 @@ export function LandingComponent() {
                 </div>
                 {plan.popular && (
                   <div className="text-purple-600 font-semibold mb-6">
-                    Buy once, use forever! No subscription.
+                    Launch special!
                   </div>
                 )}
                 <ul className="space-y-2 mb-8">
@@ -439,7 +432,19 @@ export function LandingComponent() {
               browsing habits today.
             </p>
             <Button size="lg" variant="secondary">
-              Get Un-Tab Now <ArrowRight className="ml-2 h-4 w-4" />
+              <svg
+                className="mr-2 h-4 w-4 text-white"
+                role="img"
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <title>Google Chrome</title>
+                <path
+                  fill="black"
+                  d="M12 0C8.21 0 4.831 1.757 2.632 4.501l3.953 6.848A5.454 5.454 0 0 1 12 6.545h10.691A12 12 0 0 0 12 0zM1.931 5.47A11.943 11.943 0 0 0 0 12c0 6.012 4.42 10.991 10.189 11.864l3.953-6.847a5.45 5.45 0 0 1-6.865-2.29zm13.342 2.166a5.446 5.446 0 0 1 1.45 7.09l.002.001h-.002l-5.344 9.257c.206.01.413.016.621.016 6.627 0 12-5.373 12-12 0-1.54-.29-3.011-.818-4.364zM12 16.364a4.364 4.364 0 1 1 0-8.728 4.364 4.364 0 0 1 0 8.728Z"
+                />
+              </svg>
+              Add Un-Tab to Chrome Now <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           </motion.div>
         </section>
