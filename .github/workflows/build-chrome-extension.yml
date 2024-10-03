@@ -39,7 +39,7 @@ jobs:
 
       - name: Build extension
         env:
-          BASE_URL: https://untab.xyz # Added this line
+          BASE_URL: https://untab.xyz
         run: |
           cd chrome-extension
           npm run build

@@ -1,6 +1,10 @@
 const path = require('path');
 const CopyPlugin = require('copy-webpack-plugin');
-const webpack = require('webpack'); // Added this line
+const webpack = require('webpack');
+const dotenv = require('dotenv'); // Added this line
+
+// Load environment variables from .env file
+dotenv.config({ path: path.resolve(__dirname, '.env') }); // Added this line
 
 module.exports = {
   entry: {
@@ -42,7 +46,7 @@ module.exports = {
       ],
     }),
     new webpack.DefinePlugin({
-      'process.env.BASE_URL': JSON.stringify(process.env.BASE_URL || 'http://127.0.0.1:8000'), // Added this block
+      'process.env.BASE_URL': JSON.stringify(process.env.BASE_URL || 'http://127.0.0.1:8000'),
     }),
   ],
   optimization: {
