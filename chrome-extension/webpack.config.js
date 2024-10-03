@@ -5,7 +5,7 @@ module.exports = {
   entry: {
     popup: './src/popup.ts',
     background: './src/background.ts',
-    content: './src/content.ts',
+    // Removed the content entry as content.ts is no longer needed
     login: './src/login.ts',
     styles: './src/styles.css',
     options: './src/options.ts',
