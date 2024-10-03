@@ -51,10 +51,13 @@ interface SessionResponse {
 export async function syncBlockedPatterns(
   patterns: BlockedSite[]
 ): Promise<SyncBlockedPatternsResponse> {
-  // Replace local token retrieval with getValidAccessToken
   const token = await getValidAccessToken();
   if (!token) {
-    throw new Error('No token found');
+    console.warn('No access token could be obtained. User needs to (re-)login');
+    return {
+      success: false,
+      blocked_patterns: [],
+    };
   }
 
   const response = await fetch(`${BASE_URL}/api/user/blocklist/sync`, {
@@ -78,7 +81,8 @@ export async function getBlockedPatterns(): Promise<BlockedSite[]> {
   // Replace local token retrieval with getValidAccessToken
   const token = await getValidAccessToken();
   if (!token) {
-    throw new Error('No token found');
+    console.warn('No access token could be obtained.');
+    return [];
   }
 
   const response = await fetch(`${BASE_URL}/api/user/blocklist`, {
@@ -128,7 +132,11 @@ export async function syncStats(syncRequest: any) {
   // Replace local token retrieval with getValidAccessToken
   const token = await getValidAccessToken();
   if (!token) {
-    throw new Error('No token found');
+    console.warn('No access token could be obtained. User needs to (re-)login');
+    return {
+      success: false,
+      message: 'No access token could be obtained. User needs to (re-)login',
+    };
   }
 
   const response = await fetch(`${BASE_URL}/api/user/stats/sync`, {
@@ -155,9 +163,16 @@ export async function getValidAccessToken(): Promise<string | null> {
     tokenExpiry?: number;
   }>(resolve => chrome.storage.local.get(['token', 'refreshToken', 'tokenExpiry'], resolve));
 
-  if (token && tokenExpiry && Date.now() < tokenExpiry) {
-    return token;
-  } else if (refreshToken) {
+  if (token) {
+    if (tokenExpiry && Date.now() < tokenExpiry) {
+      console.log('Token is present and not expired');
+      return token;
+    } else {
+      console.warn('Token is present but expired');
+    }
+  }
+
+  if (refreshToken) {
     try {
       const { data } = await axios.post(`${BASE_URL}/api/auth/refresh`, {
         refresh_token: refreshToken,
@@ -167,11 +182,14 @@ export async function getValidAccessToken(): Promise<string | null> {
         refreshToken: data.refresh_token,
         tokenExpiry: Date.now() + data.expires_in * 1000,
       });
+      console.log('Token refreshed successfully');
       return data.access_token;
     } catch (error: any) {
       console.error('Token refresh error:', error.response?.data?.detail || error.message);
       return null;
     }
+  } else {
+    console.warn('No refreshToken found. User needs to (re-)login.');
   }
   return null;
 }
