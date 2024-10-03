@@ -307,8 +307,8 @@ export function LandingComponent() {
               },
               {
                 title: "Pro",
-                price: "$5.99",
-                rrp: "$11.99",
+                price: "$7.99",
+                rrp: "$15.99",
                 discount: "50% off!",
                 features: [
                   "Unlimited website blocking",
@@ -320,7 +320,7 @@ export function LandingComponent() {
                 cta: "Go Pro",
                 ctaLink:
                   process.env.NODE_ENV === "production"
-                    ? "https://buy.stripe.com/4gw9ASguVgiXeByaEE"
+                    ? "https://buy.stripe.com/9AQbJ01A11o38dacMN"
                     : "https://buy.stripe.com/test_3cs4go6HJ8Xs0Fi000",
                 popular: true,
               },
