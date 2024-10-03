@@ -268,8 +268,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     addRemoveListeners();
   }
 
-  function updateCurrentDomainInfo(blockedSites: BlockedSite[]) {
-    chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
+  async function updateCurrentDomainInfo(blockedSites: BlockedSite[]) {
+    chrome.tabs.query({ active: true, currentWindow: true }, async tabs => {
       const currentTab = tabs[0];
       if (currentTab && currentTab.url) {
         const url = new URL(currentTab.url);
@@ -278,6 +278,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         domainInfo.textContent = domain;
 
         const isBlocked = blockedSites.some(site => matchesWildcard(currentTab.url!, site.pattern));
+        const isPaid = await isPaidUser();
 
         if (isBlocked) {
           blockStatus.textContent = '🚫 Blocked';
@@ -288,7 +289,8 @@ document.addEventListener('DOMContentLoaded', async () => {
           blockStatus.textContent = '✅ Not Blocked';
           blockStatus.classList.add('bg-green-100', 'text-green-800');
           blockStatus.classList.remove('bg-red-100', 'text-red-800');
-          quickBlockButton.classList.remove('hidden');
+
+          updateUIAfterPatternChange(blockedSites.length, isPaid);
         }
       } else {
         domainInfo.textContent = 'No active tab';
@@ -305,11 +307,22 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (!isPaid && count >= 5) {
       addPatternButton.disabled = true;
-      addPatternButton.innerHTML = '🔒 Go Pro for Unlimited Blocked Patterns';
+      addPatternButton.innerHTML = `<button
+          id="goProButton"
+          class="bg-purple-600 text-white px-4 py-2 rounded-lg shadow-md hover:bg-purple-700 transition duration-200 ease-in-out"
+        >
+          🔒 Go Pro for Unlimited Blocked Patterns
+        </button>`;
       addPatternButton.classList.add('bg-gray-400', 'cursor-not-allowed');
       addPatternButton.classList.remove('bg-indigo-600', 'hover:bg-indigo-700');
       urlPatternInput.disabled = true;
       urlPatternInput.classList.add('bg-gray-100', 'cursor-not-allowed');
+
+      // Add event listener to the new Go Pro button
+      const goProButton = document.getElementById('goProButton') as HTMLButtonElement;
+      goProButton.addEventListener('click', () => {
+        window.open('https://buy.stripe.com/9AQbJ01A11o38dacMN', '_blank');
+      });
     } else {
       addPatternButton.disabled = false;
       addPatternButton.textContent = 'Add Pattern';
@@ -346,6 +359,51 @@ document.addEventListener('DOMContentLoaded', async () => {
     await chrome.storage.local.set({ blockedSites });
     renderPatternList(blockedSites, isPaid);
     await syncPatterns();
+
+    // Update the current domain info and UI
+    updateCurrentDomainInfo(blockedSites);
+    updateUIAfterPatternChange(blockedSites.length, isPaid);
+  }
+
+  function updateUIAfterPatternChange(count: number, isPaid: boolean) {
+    if (!isPaid) {
+      if (count < 5) {
+        // Reset the "Block This Domain" button
+        quickBlockButton.textContent = 'Block This Domain';
+        quickBlockButton.classList.remove('bg-purple-600', 'hover:bg-purple-700', 'text-xs');
+        quickBlockButton.classList.add('bg-indigo-600', 'hover:bg-indigo-700');
+        quickBlockButton.onclick = handleQuickBlock;
+        quickBlockButton.classList.remove('hidden');
+
+        // Reset the "Add Pattern" button
+        addPatternButton.disabled = false;
+        addPatternButton.textContent = 'Add Pattern';
+        addPatternButton.classList.remove('bg-gray-400', 'cursor-not-allowed');
+        addPatternButton.classList.add('bg-indigo-600', 'hover:bg-indigo-700');
+
+        // Re-enable the input field
+        urlPatternInput.disabled = false;
+        urlPatternInput.classList.remove('bg-gray-100', 'cursor-not-allowed');
+      } else {
+        // Change "Block This Domain" to "Go Pro" button
+        quickBlockButton.textContent = '🔒 Go Pro for Unlimited Blocked Patterns';
+        quickBlockButton.classList.remove('bg-indigo-600', 'hover:bg-indigo-700');
+        quickBlockButton.classList.add('bg-purple-600', 'hover:bg-purple-700', 'text-xs');
+        quickBlockButton.onclick = () =>
+          window.open('https://buy.stripe.com/9AQbJ01A11o38dacMN', '_blank');
+        quickBlockButton.classList.remove('hidden');
+      }
+    } else {
+      // For paid users, always show "Block This Domain" button
+      quickBlockButton.textContent = 'Block This Domain';
+      quickBlockButton.classList.remove('bg-purple-600', 'hover:bg-purple-700', 'text-xs');
+      quickBlockButton.classList.add('bg-indigo-600', 'hover:bg-indigo-700');
+      quickBlockButton.onclick = handleQuickBlock;
+      quickBlockButton.classList.remove('hidden');
+    }
+
+    // Update the pattern counter
+    updatePatternCounter(count, isPaid);
   }
 
   function openLoginPopup() {

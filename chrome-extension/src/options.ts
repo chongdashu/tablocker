@@ -356,6 +356,14 @@ function initializeUI() {
   });
 
   timeRangeSelect.addEventListener('change', updateStats);
+
+  // Add Go Pro button click handler
+  const goProOptionsButton = document.getElementById('goProOptionsButton');
+  if (goProOptionsButton) {
+    goProOptionsButton.addEventListener('click', () => {
+      window.open('https://buy.stripe.com/9AQbJ01A11o38dacMN', '_blank');
+    });
+  }
 }
 
 // Initialize the page
