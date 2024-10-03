@@ -1,5 +1,6 @@
 const path = require('path');
 const CopyPlugin = require('copy-webpack-plugin');
+const webpack = require('webpack'); // Added this line
 
 module.exports = {
   entry: {
@@ -39,6 +40,9 @@ module.exports = {
         { from: path.resolve(__dirname, 'public'), to: '.' },
         { from: path.resolve(__dirname, 'icons'), to: 'icons' },
       ],
+    }),
+    new webpack.DefinePlugin({
+      'process.env.BASE_URL': JSON.stringify(process.env.BASE_URL || 'http://127.0.0.1:8000'), // Added this block
     }),
   ],
   optimization: {

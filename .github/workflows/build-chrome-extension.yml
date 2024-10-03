@@ -38,6 +38,8 @@ jobs:
           echo "VERSION=$VERSION" >> $GITHUB_ENV
 
       - name: Build extension
+        env:
+          BASE_URL: https://untab.xyz # Added this line
         run: |
           cd chrome-extension
           npm run build
