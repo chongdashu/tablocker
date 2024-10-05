@@ -19,6 +19,9 @@ import {
 import Image from "next/image";
 import { ExtensionMockup } from "./ExtensionMockup";
 
+const CHROME_STORE_LINK =
+  "https://chromewebstore.google.com/detail/un-tab-keep-focus-stop-di/kkkohcffjocedjphabjonopolmjfofik";
+
 export function LandingComponent() {
   const { scrollYProgress } = useScroll();
 
@@ -126,12 +129,7 @@ export function LandingComponent() {
             <Button
               size="lg"
               className="bg-purple-600 hover:bg-purple-700 text-white"
-              onClick={() =>
-                window.open(
-                  "https://chromewebstore.google.com/detail/productivity-enforcer/ckhdpoeddfocfjinehpedlbcihjjmopn?hl=en",
-                  "_blank"
-                )
-              }
+              onClick={() => window.open(CHROME_STORE_LINK, "_blank")}
             >
               <svg
                 className="mr-2 h-4 w-4 text-white"
@@ -301,8 +299,7 @@ export function LandingComponent() {
                   "Basic analytics",
                 ],
                 cta: "Add to Chrome for FREE",
-                ctaLink:
-                  "https://chromewebstore.google.com/detail/productivity-enforcer/ckhdpoeddfocfjinehpedlbcihjjmopn?hl=en",
+                ctaLink: CHROME_STORE_LINK,
                 popular: false,
               },
               {
@@ -434,7 +431,11 @@ export function LandingComponent() {
               Join thousands of focused individuals and take control of your
               browsing habits today.
             </p>
-            <Button size="lg" variant="secondary">
+            <Button
+              size="lg"
+              variant="secondary"
+              onClick={() => window.open(CHROME_STORE_LINK, "_blank")}
+            >
               <svg
                 className="mr-2 h-4 w-4 text-white"
                 role="img"
