@@ -140,12 +140,22 @@ document.addEventListener('DOMContentLoaded', async () => {
         { withCredentials: true }
       );
       setLoading('signupButton', false);
-      await chrome.storage.local.set({
-        token: data.access_token,
-        refreshToken: data.refresh_token,
-        tokenExpiry: Date.now() + data.expires_in * 1000,
-      });
-      setStatus('Signup successful! Please verify your email.', 'success');
+
+      // Handle the new RegistrationResponse
+      if (data.requires_verification) {
+        setStatus(data.message, 'success');
+        // Optionally, you can store the user_id if needed for future use
+        await chrome.storage.local.set({
+          pendingVerification: true,
+          pendingVerificationEmail: data.email,
+        });
+      } else {
+        // This case is unlikely given our current setup, but included for completeness
+        setStatus('Signup successful! Please verify your email address.', 'success');
+      }
+
+      // Remove any existing token data as we don't receive tokens on registration anymore
+      await chrome.storage.local.remove(['token', 'refreshToken', 'tokenExpiry']);
     } catch (error: any) {
       setLoading('signupButton', false);
       console.error('Signup error:', error.response?.data?.detail || error.message);
