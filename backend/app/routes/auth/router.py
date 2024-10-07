@@ -123,18 +123,24 @@ async def register(user_create: UserCreate) -> RegistrationResponse:
 
     Args:
         user_create (UserCreate): The user creation data.
+        request (Request): The FastAPI request object.
 
     Returns:
         RegistrationResponse: The registration response containing user information and verification status.
     """
     logger.info(f"Attempting to register user: {user_create.username}")
     try:
+        # Construct the redirect URL
+        base_url = "http://localhost:3000/"
+        redirect_url = f"{base_url}register?email={user_create.username}"
+
         # Attempt to sign up the user using Supabase
         response = supabase_client.auth.sign_up(
             {
                 "email": user_create.username,
                 "password": user_create.password,
-            }
+                "options": {"email_redirect_to": redirect_url},
+            },
         )
 
         if response.user is None:
