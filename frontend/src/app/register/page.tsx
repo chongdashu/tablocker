@@ -69,7 +69,7 @@ export default function RegisterConfirmation() {
                 </li>
                 <li className="flex items-center">
                   <span className="mr-2">3.</span>
-                  Click the "Login" button
+                  Click the &quot;Login&quot; button
                 </li>
               </ol>
             </div>
