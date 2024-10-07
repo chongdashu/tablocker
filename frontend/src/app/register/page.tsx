@@ -5,9 +5,9 @@ import { motion } from "framer-motion";
 import { ArrowRight, CheckCircle } from "lucide-react";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 
-export default function RegisterConfirmation() {
+function RegisterConfirmationContent() {
   const searchParams = useSearchParams();
   const [email, setEmail] = useState<string | null>(null);
 
@@ -112,5 +112,13 @@ export default function RegisterConfirmation() {
         <p>&copy; {new Date().getFullYear()} UnTab.xyz. All rights reserved.</p>
       </footer>
     </div>
+  );
+}
+
+export default function RegisterConfirmation() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <RegisterConfirmationContent />
+    </Suspense>
   );
 }
