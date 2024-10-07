@@ -89,3 +89,10 @@ class RefreshTokenResponse(BaseModel):
 
     access_token: str
     token_type: str
+
+
+class RegistrationResponse(BaseModel):
+    message: str
+    user_id: str
+    email: str
+    requires_verification: bool

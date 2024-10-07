@@ -18,7 +18,8 @@ from supabase import create_client
 
 from database.manager import get_db
 from database.models import PayingUser
-from routes.auth.api import RefreshTokenRequest  # New imports
+from routes.auth.api import RefreshTokenRequest
+from routes.auth.api import RegistrationResponse
 from routes.auth.api import SessionResponse
 from routes.auth.api import Token
 from routes.auth.api import UserCreate
@@ -115,8 +116,8 @@ async def get_current_user(
     return UserResponse(supabase_user_id=response.user.id, email=response.user.email)
 
 
-@router.post("/register", response_model=Token)
-async def register(user_create: UserCreate) -> Token:
+@router.post("/register", response_model=RegistrationResponse)
+async def register(user_create: UserCreate) -> RegistrationResponse:
     """
     Register a new user.
 
@@ -124,10 +125,7 @@ async def register(user_create: UserCreate) -> Token:
         user_create (UserCreate): The user creation data.
 
     Returns:
-        Token: The access token for the newly registered user.
-
-    Raises:
-        HTTPException: If registration fails or email confirmation is required.
+        RegistrationResponse: The registration response containing user information and verification status.
     """
     logger.info(f"Attempting to register user: {user_create.username}")
     try:
@@ -146,26 +144,15 @@ async def register(user_create: UserCreate) -> Token:
                 detail="Registration failed: User could not be created",
             )
 
-        if response.session is None:
-            # User created but not automatically signed in
-            # This might happen if email confirmation is required
-            logger.info(f"User registered but requires email confirmation: {user_create.username}")
-            raise HTTPException(
-                status_code=status.HTTP_202_ACCEPTED,
-                detail="Registration successful. Please check your email to confirm your account.",
-                headers={"X-User-ID": str(response.user.id)},
-            )
+        # User created successfully
+        logger.info(f"User successfully registered: {user_create.username}")
 
-        # User created and automatically signed in
-        logger.info(f"User successfully registered and signed in: {user_create.username}")
-        access_token = response.session.access_token
-        refresh_token = response.session.refresh_token  # {{ added }}
-        expires_in = response.session.expires_in  # {{ added }}
-        token_type = response.session.token_type
-
-        return Token(
-            access_token=access_token, refresh_token=refresh_token, expires_in=expires_in, token_type=token_type
-        )  # {{ modified }}
+        return RegistrationResponse(
+            message="Registration successful. Please check your email to confirm your account.",
+            user_id=str(response.user.id),
+            email=response.user.email or user_create.username,
+            requires_verification=True,
+        )
 
     except Exception as e:
         # Handle any errors that occur during registration
