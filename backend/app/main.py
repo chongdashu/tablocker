@@ -34,7 +34,8 @@ app.include_router(health_router, prefix="/api/health", tags=["health"])
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "chrome-extension://iaaiaejgfjimgoiagiahmeiogbiomlaa",  # Allow your Chrome extension
+        "chrome-extension://iaaiaejgfjimgoiagiahmeiogbiomlaa",
+        "chrome-extension://kkkohcffjocedjphabjonopolmjfofik",
     ],
     allow_credentials=True,  # Enable credentials
     allow_methods=["*"],
