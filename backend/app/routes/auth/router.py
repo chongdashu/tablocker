@@ -131,7 +131,7 @@ async def register(user_create: UserCreate) -> RegistrationResponse:
     logger.info(f"Attempting to register user: {user_create.username}")
     try:
         # Construct the redirect URL
-        base_url = "http://localhost:3000/"
+        base_url = "https://untab.xyz/"
         redirect_url = f"{base_url}register?email={user_create.username}"
 
         # Attempt to sign up the user using Supabase
