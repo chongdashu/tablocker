@@ -16,6 +16,12 @@ COPY . .
 # Set environment variable for production
 ENV NODE_ENV=production
 
+# Set PostHog environment variables
+ARG NEXT_PUBLIC_POSTHOG_KEY
+ARG NEXT_PUBLIC_POSTHOG_HOST
+ENV NEXT_PUBLIC_POSTHOG_KEY=$NEXT_PUBLIC_POSTHOG_KEY
+ENV NEXT_PUBLIC_POSTHOG_HOST=$NEXT_PUBLIC_POSTHOG_HOST
+
 # Build the Next.js app
 RUN npm run build
 
