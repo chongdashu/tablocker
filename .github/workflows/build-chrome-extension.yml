@@ -33,7 +33,7 @@ jobs:
       - name: Update manifest.json version
         run: |
           cd chrome-extension
-          VERSION=$(date '+%Y.%m.%d.%H%M%S')
+          VERSION=$(date '+%Y.%m.%d.%H%M')
           sed -i "s/\"version\": \".*\"/\"version\": \"$VERSION\"/" manifest.json
           echo "VERSION=$VERSION" >> $GITHUB_ENV
 
@@ -47,7 +47,7 @@ jobs:
       - name: Create ZIP file
         run: |
           cd chrome-extension/dist
-          zip -r ../../tablocker.zip *
+          zip -r ../../tablocker-${{ env.VERSION }}.zip *
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
@@ -58,7 +58,7 @@ jobs:
 
       - name: Upload to S3
         run: |
-          aws s3 cp tablocker.zip s3://${{ secrets.AWS_S3_BUCKET_NAME }}/tablocker-${{ github.sha }}.zip
+          aws s3 cp tablocker-${{ env.VERSION }}.zip s3://${{ secrets.AWS_S3_BUCKET_NAME }}/tablocker-${{ github.sha }}.zip
 
       - name: Create GitHub Release
         id: create_release
@@ -66,7 +66,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: v${{ github.run_number }}
+          tag_name: v${{ env.VERSION }}
           release_name: "Version ${{ env.VERSION }}"
           draft: true
           prerelease: true
@@ -77,6 +77,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./tablocker.zip
-          asset_name: tablocker.zip
+          asset_path: ./tablocker-${{ env.VERSION }}.zip
+          asset_name: tablocker-${{ env.VERSION }}.zip
           asset_content_type: application/zip
