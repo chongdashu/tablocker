@@ -287,12 +287,12 @@ async def refresh_token(request: RefreshTokenRequest) -> Token:
                 headers={"WWW-Authenticate": "Bearer"},
             )
         access_token = response.session.access_token
-        refresh_token = response.session.refresh_token  # {{ added }}
-        expires_in = response.session.expires_in  # {{ added }}
+        refresh_token = response.session.refresh_token
+        expires_in = response.session.expires_in
         token_type = response.session.token_type
         return Token(
             access_token=access_token, refresh_token=refresh_token, expires_in=expires_in, token_type=token_type
-        )  # {{ modified }}
+        )
     except Exception as e:
         logger.error(f"Token refresh failed: {str(e)}")
         raise HTTPException(
