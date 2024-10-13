@@ -17,7 +17,13 @@ const DEBUG_IS_PAID_USER = true;
 
 import axios from 'axios';
 import { BASE_URL } from './config';
-import { BlockedSite, SyncBlockedPatternsResponse } from './types';
+import {
+  BlockedDetail,
+  BlockedSite,
+  SyncBlockedPatternsResponse,
+  SyncStatsRequest,
+  SyncStatsResponse,
+} from './types';
 
 export async function isPaidUser(): Promise<boolean> {
   // Replace local token retrieval with getValidAccessToken
@@ -128,8 +134,7 @@ export function mergePatterns(
   return mergedPatterns;
 }
 
-export async function syncStats(syncRequest: any) {
-  // Replace local token retrieval with getValidAccessToken
+export async function syncStats(syncRequest: SyncStatsRequest): Promise<SyncStatsResponse> {
   const token = await getValidAccessToken();
   if (!token) {
     console.warn('No access token could be obtained. User needs to (re-)login');
@@ -192,4 +197,48 @@ export async function getValidAccessToken(): Promise<string | null> {
     console.warn('No refreshToken found. User needs to (re-)login.');
   }
   return null;
+}
+
+export async function fetchBlockingHistory(): Promise<BlockedDetail[]> {
+  const token = await getValidAccessToken();
+  if (!token) {
+    console.warn('No access token. Cannot fetch blocking history.');
+    return [];
+  }
+
+  const response = await fetch(`${BASE_URL}/api/user/blocking_history`, {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch blocking history');
+  }
+
+  return await response.json();
+}
+
+export async function postBlockingHistory(entries: BlockedDetail[]): Promise<BlockedDetail[]> {
+  const token = await getValidAccessToken();
+  if (!token) {
+    throw new Error('No access token. Cannot add blocking history.');
+  }
+
+  const response = await fetch(`${BASE_URL}/api/user/blocking_history`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ entries }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.detail || 'Failed to add blocking history');
+  }
+
+  return await response.json();
 }
