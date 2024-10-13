@@ -16,6 +16,9 @@ const statsChartCanvas = document.getElementById('statsChart') as HTMLCanvasElem
 const patternsChartCanvas = document.getElementById('patternsChart') as HTMLCanvasElement;
 const timeRangeSelect = document.getElementById('timeRange') as HTMLSelectElement;
 const blockedDetailsElement = document.getElementById('blockedDetails') as HTMLUListElement;
+const blockedDetailsCountElement = document.getElementById(
+  'blockedDetailsCount'
+) as HTMLSpanElement;
 
 let statsChart: Chart<'line'>;
 let patternsChart: Chart<'pie'>;
@@ -186,6 +189,10 @@ async function updateCharts(
 function updateBlockedDetails(blockedDetails: BlockedDetail[]) {
   console.log('Updating blocked details:', blockedDetails);
   blockedDetailsElement.innerHTML = '';
+
+  // Update the count
+  blockedDetailsCountElement.textContent = blockedDetails.length.toString();
+
   if (blockedDetails.length === 0) {
     const li = document.createElement('li');
     li.textContent = 'No blocked details available.';
