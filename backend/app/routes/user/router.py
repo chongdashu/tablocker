@@ -9,11 +9,13 @@ from sqlalchemy.orm import Session
 from database.manager import get_db
 from database.models import BlockedPattern
 from database.models import BlockedPatternStats
+from database.models import BlockingHistory
 from database.models import DailyStats
 from database.models import UserStats
 from routes.auth.api import UserResponse
 from routes.auth.router import get_current_user
 from routes.user.api import BlockedPattern as BlockedPatternSchema
+from routes.user.api import BlockingHistoryRecord
 from routes.user.api import SyncBlockedPatternsRequest
 from routes.user.api import SyncBlockedPatternsResponse
 from routes.user.api import SyncStatsRequest
@@ -154,3 +156,49 @@ async def sync_stats(
         db.rollback()
         logger.error(f"Error syncing stats for user {current_user.supabase_user_id}: {str(e)}")
         raise HTTPException(status_code=500, detail="Error syncing stats")
+
+
+@router.get("/blocking_history", response_model=list[BlockingHistoryRecord])
+async def get_blocking_history(current_user: UserResponse = Depends(get_current_user), db: Session = Depends(get_db)):
+    """
+    Retrieve the blocking history for the current user.
+    """
+    history = db.query(BlockingHistory).filter(BlockingHistory.supabase_user_id == current_user.supabase_user_id).all()
+    return history
+
+
+@router.post("/blocking_history", response_model=list[BlockingHistoryRecord])
+async def post_blocking_history(
+    blocking_entries: list[BlockingHistoryRecord],
+    current_user: UserResponse = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> list[BlockingHistoryRecord]:
+    """
+    Add new blocking history entries for the current user, de-duplicating based on timestamps.
+    """
+    # Create a dictionary to store entries, using timestamp as the key
+    unique_entries: dict[datetime, BlockingHistoryRecord] = {}
+
+    for entry in blocking_entries:
+        if entry.timestamp not in unique_entries or entry.timestamp > unique_entries[entry.timestamp].timestamp:
+            unique_entries[entry.timestamp] = entry
+
+    # Add unique entries to the database
+    new_entries: list[BlockingHistory] = []
+    for unique_entry in unique_entries.values():
+        new_entry = BlockingHistory(
+            supabase_user_id=current_user.supabase_user_id,
+            url=unique_entry.url,
+            pattern=unique_entry.pattern,
+            timestamp=unique_entry.timestamp,
+        )
+        db.add(new_entry)
+        new_entries.append(new_entry)
+
+    db.commit()
+    for entry in new_entries:
+        db.refresh(entry)
+
+    return [
+        BlockingHistoryRecord(url=entry.url, pattern=entry.pattern, timestamp=entry.timestamp) for entry in new_entries
+    ]
