@@ -93,11 +93,9 @@ import { matchesWildcard, syncStats } from './utils';
               });
             } else {
               console.log('URL is not blocked');
-              // Remove the updateStats call for 'allowed'
             }
           } else {
             console.log('Blocking is disabled, allowing all URLs');
-            // Remove the updateStats call for 'allowed'
           }
         });
       }
@@ -112,7 +110,7 @@ import { matchesWildcard, syncStats } from './utils';
 
     chrome.storage.local.get(
       ['tabStats', 'dailyStats', 'blockedPatterns', 'blockedDetails'],
-      result => {
+      async result => {
         const tabStats: TabStats = result.tabStats || { blocked: 0 };
         const dailyStats: { [date: string]: DailyStats } = result.dailyStats || {};
         const blockedPatterns: BlockedPattern = result.blockedPatterns || {};
@@ -137,10 +135,20 @@ import { matchesWildcard, syncStats } from './utils';
         // Update blocked details
         blockedDetails.push({ url, pattern, timestamp });
         console.log('Saving blocked details:', blockedDetails);
-        chrome.storage.local.set({ tabStats, dailyStats, blockedPatterns, blockedDetails }, () => {
-          // Perform sync after updating local storage
-          performSync();
-        });
+
+        // Save all updated data
+        chrome.storage.local.set(
+          {
+            tabStats,
+            dailyStats,
+            blockedPatterns,
+            blockedDetails,
+          },
+          () => {
+            console.log('All stats updated and saved');
+            performSync();
+          }
+        );
       }
     );
   }
