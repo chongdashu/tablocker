@@ -8,7 +8,7 @@ import {
   SyncStatsRequest,
   TabStats,
 } from './types';
-import { isPaidUser, syncStats } from './utils';
+import { fetchBlockingHistory, isPaidUser, postBlockingHistory, syncStats } from './utils';
 
 const blockedCountElement = document.getElementById('blockedCount') as HTMLSpanElement;
 const enableBadgesCheckbox = document.getElementById('enableBadges') as HTMLInputElement;
@@ -186,7 +186,7 @@ async function updateCharts(
   patternsChart = new Chart(patternsChartCanvas, pieChartConfig);
 }
 
-function updateBlockedDetails(blockedDetails: BlockedDetail[]) {
+async function updateBlockedDetails(blockedDetails: BlockedDetail[]) {
   console.log('Updating blocked details:', blockedDetails);
   blockedDetailsElement.innerHTML = '';
 
@@ -211,6 +211,33 @@ function updateBlockedDetails(blockedDetails: BlockedDetail[]) {
       });
   }
   console.log('Blocked details updated in DOM');
+}
+
+// Add this new function to sync blocked details with the server
+async function syncBlockedDetails() {
+  try {
+    // Get local blocked details
+    const { blockedDetails } = (await chrome.storage.local.get('blockedDetails')) as {
+      blockedDetails: BlockedDetail[];
+    };
+
+    // Post local blocked details to the server
+    const updatedDetails = await postBlockingHistory(blockedDetails);
+
+    // Fetch the updated list from the server
+    const serverBlockedDetails = await fetchBlockingHistory();
+
+    // Update local storage with the server data
+    await chrome.storage.local.set({ blockedDetails: serverBlockedDetails });
+
+    // Update the UI
+    updateBlockedDetails(serverBlockedDetails);
+
+    console.log('Blocked details synced successfully');
+  } catch (error) {
+    console.error('Error syncing blocked details:', error);
+    setStatus('Failed to sync blocked details', 'error');
+  }
 }
 
 function listenForStorageChanges() {
@@ -283,7 +310,9 @@ async function handleSyncStats() {
 
     const uploadResponse = await syncStats(syncRequest);
     if (uploadResponse.success) {
-      setStatus('Stats synced successfully', 'success');
+      // Sync blocked details after syncing stats
+      await syncBlockedDetails();
+      setStatus('Stats and blocked details synced successfully', 'success');
       updateLastSyncTime();
       updateStats(); // Refresh the UI with the new data
     } else {

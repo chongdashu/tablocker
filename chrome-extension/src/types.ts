@@ -58,3 +58,7 @@ export interface SyncStatsResponse {
   success: boolean;
   message: string;
 }
+
+export interface BlockingHistoryRequest {
+  blocking_history: BlockedDetail[];
+}

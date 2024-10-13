@@ -16,6 +16,7 @@ from routes.auth.api import UserResponse
 from routes.auth.router import get_current_user
 from routes.user.api import BlockedPattern as BlockedPatternSchema
 from routes.user.api import BlockingHistoryRecord
+from routes.user.api import BlockingHistoryRequest
 from routes.user.api import SyncBlockedPatternsRequest
 from routes.user.api import SyncBlockedPatternsResponse
 from routes.user.api import SyncStatsRequest
@@ -169,7 +170,7 @@ async def get_blocking_history(current_user: UserResponse = Depends(get_current_
 
 @router.post("/blocking_history", response_model=list[BlockingHistoryRecord])
 async def post_blocking_history(
-    blocking_entries: list[BlockingHistoryRecord],
+    request: BlockingHistoryRequest,
     current_user: UserResponse = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> list[BlockingHistoryRecord]:
@@ -179,7 +180,7 @@ async def post_blocking_history(
     # Create a dictionary to store entries, using timestamp as the key
     unique_entries: dict[datetime, BlockingHistoryRecord] = {}
 
-    for entry in blocking_entries:
+    for entry in request.blocking_history:
         if entry.timestamp not in unique_entries or entry.timestamp > unique_entries[entry.timestamp].timestamp:
             unique_entries[entry.timestamp] = entry
 
