@@ -1,4 +1,5 @@
 from datetime import date
+from datetime import datetime
 from typing import List
 
 from pydantic import BaseModel
@@ -101,3 +102,12 @@ class SyncStatsResponse(BaseModel):
 
     success: bool
     message: str
+
+
+class BlockingHistoryRecord(BaseModel):
+    url: str
+    pattern: str
+    timestamp: datetime
+
+    class Config:
+        from_attributes = True
