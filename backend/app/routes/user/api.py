@@ -111,3 +111,7 @@ class BlockingHistoryRecord(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class BlockingHistoryRequest(BaseModel):
+    blocking_history: list[BlockingHistoryRecord]

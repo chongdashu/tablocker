@@ -20,6 +20,7 @@ import { BASE_URL } from './config';
 import {
   BlockedDetail,
   BlockedSite,
+  BlockingHistoryRequest,
   SyncBlockedPatternsResponse,
   SyncStatsRequest,
   SyncStatsResponse,
@@ -226,13 +227,17 @@ export async function postBlockingHistory(entries: BlockedDetail[]): Promise<Blo
     throw new Error('No access token. Cannot add blocking history.');
   }
 
+  const requestBody: BlockingHistoryRequest = {
+    blocking_history: entries,
+  };
+
   const response = await fetch(`${BASE_URL}/api/user/blocking_history`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify({ entries }),
+    body: JSON.stringify(requestBody),
   });
 
   if (!response.ok) {
