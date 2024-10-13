@@ -245,26 +245,28 @@ async function handleSyncStats() {
     syncText.classList.add('hidden');
     spinner.classList.remove('hidden');
 
-    const tabStats = (await chrome.storage.local.get('tabStats')) as { tabStats: TabStats };
-    const dailyStats = (await chrome.storage.local.get('dailyStats')) as {
+    const { tabStats, dailyStats, blockedPatterns } = (await chrome.storage.local.get([
+      'tabStats',
+      'dailyStats',
+      'blockedPatterns',
+    ])) as {
+      tabStats: TabStats;
       dailyStats: { [date: string]: DailyStats };
-    };
-    const blockedPatternStats = (await chrome.storage.local.get('blockedPatterns')) as {
       blockedPatterns: BlockedPattern;
     };
 
     const syncRequest: SyncStatsRequest = {
       user_stats: {
-        total_tabs_blocked: tabStats.tabStats?.blocked || 0,
+        total_tabs_blocked: tabStats?.blocked || 0,
         last_updated: new Date().toISOString(),
       },
-      daily_stats: Object.entries(dailyStats.dailyStats || {}).map(
+      daily_stats: Object.entries(dailyStats || {}).map(
         ([date, stats]): DailyStat => ({
           date,
           tabs_blocked: stats.blocked,
         })
       ),
-      blocked_pattern_stats: Object.entries(blockedPatternStats.blockedPatterns || {}).map(
+      blocked_pattern_stats: Object.entries(blockedPatterns || {}).map(
         ([pattern, stats]): BlockedPatternStat => ({
           pattern,
           count: stats.count,
@@ -272,10 +274,11 @@ async function handleSyncStats() {
       ),
     };
 
-    const response = await syncStats(syncRequest);
-    if (response.success) {
+    const uploadResponse = await syncStats(syncRequest);
+    if (uploadResponse.success) {
       setStatus('Stats synced successfully', 'success');
       updateLastSyncTime();
+      updateStats(); // Refresh the UI with the new data
     } else {
       throw new Error('Sync was not successful');
     }
