@@ -33,14 +33,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   await checkSession();
 
   async function checkSession() {
-    const storedToken = await new Promise<string | null>(resolve =>
-      chrome.storage.local.get('token', result => resolve(result.token || null))
-    );
-    if (storedToken) {
+    const token = await getValidAccessToken();
+    if (token) {
       try {
         const response = await axios.get(`${BASE_URL}/api/auth/session`, {
           headers: {
-            Authorization: `Bearer ${storedToken}`,
+            Authorization: `Bearer ${token}`,
           },
           withCredentials: true,
         });
