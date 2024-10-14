@@ -9,12 +9,14 @@ from fastapi import HTTPException
 from fastapi import status
 from fastapi.security import OAuth2PasswordBearer
 from fastapi.security import OAuth2PasswordRequestForm
+from jose import ExpiredSignatureError
 from jose import JWTError
 from jose import jwt
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 from supabase import Client
 from supabase import create_client
+from supabase.lib.client_options import ClientOptions
 
 from database.manager import get_db
 from database.models import PayingUser
@@ -46,7 +48,14 @@ if SUPABASE_JWT_PUBLIC_KEY is None:
     raise ValueError("SUPABASE_JWT_PUBLIC_KEY environment variable is not set")
 
 # Create a Supabase client
-supabase_client: Client = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
+supabase_client: Client = create_client(
+    SUPABASE_URL,
+    SUPABASE_ANON_KEY,
+    options=ClientOptions(
+        auto_refresh_token=False,
+        persist_session=False,
+    ),
+)
 
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
@@ -92,6 +101,7 @@ async def get_current_user(
             algorithms=[ALGORITHM],
             options={
                 "verify_aud": False,
+                "verify_exp": True,
             },
         )
         uuid: str | None = payload.get("sub")
@@ -99,6 +109,13 @@ async def get_current_user(
             logger.info("UUID not found in token payload")
             raise credentials_exception
         logger.info(f"UUID extracted from token: {uuid}")
+    except ExpiredSignatureError:
+        logger.info("JWT token has expired")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token has expired",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     except JWTError:
         logger.info("JWT decoding failed", exc_info=True)
         raise credentials_exception
@@ -208,15 +225,18 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = 
             )
 
         access_token = response.session.access_token
-        refresh_token = response.session.refresh_token  # {{ added }}
-        expires_in = response.session.expires_in  # {{ added }}
+        refresh_token = response.session.refresh_token
+        expires_in = response.session.expires_in
         token_type = response.session.token_type
 
         logger.info(f"access_token: {access_token}")
 
         return Token(
-            access_token=access_token, refresh_token=refresh_token, expires_in=expires_in, token_type=token_type
-        )  # {{ modified }}
+            access_token=access_token,
+            refresh_token=refresh_token,
+            expires_in=expires_in,
+            token_type=token_type,
+        )
 
     except Exception as e:
         raise HTTPException(
@@ -278,8 +298,12 @@ async def refresh_token(request: RefreshTokenRequest) -> Token:
         Token: The new access token along with a new refresh token and expiry.
     """
     logger.info("Attempting to refresh access token")
+<<<<<<< Updated upstream
     logger.info(f"Received refresh token: {request.refresh_token[:10]}...")
 
+=======
+    logger.info(f"Received refresh token: {request.refresh_token}...")
+>>>>>>> Stashed changes
     try:
         logger.info("Calling supabase_client.auth.refresh_session")
         response = supabase_client.auth.refresh_session(request.refresh_token)
