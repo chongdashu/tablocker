@@ -428,8 +428,7 @@ export function LandingComponent() {
               Ready to Un-Tab Your Distractions?
             </h2>
             <p className="text-xl mb-8">
-              Join thousands of focused individuals and take control of your
-              browsing habits today.
+              Take control of your browsing habits today.
             </p>
             <Button
               size="lg"
