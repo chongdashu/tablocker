@@ -278,25 +278,42 @@ async def refresh_token(request: RefreshTokenRequest) -> Token:
         Token: The new access token along with a new refresh token and expiry.
     """
     logger.info("Attempting to refresh access token")
+    logger.info(f"Received refresh token: {request.refresh_token[:10]}...")
+
     try:
+        logger.info("Calling supabase_client.auth.refresh_session")
         response = supabase_client.auth.refresh_session(request.refresh_token)
+
+        logger.info(f"Supabase response: {response}")  # Log entire response for debugging
+
         if response.session is None:
+            logger.warning("Refresh session returned None")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Refresh token invalid",
                 headers={"WWW-Authenticate": "Bearer"},
             )
+
+        logger.info("Successfully refreshed session")
+        logger.info(f"New access token: {response.session.access_token[:10]}...")
+        logger.info(f"New refresh token: {response.session.refresh_token[:10]}...")
+        logger.info(f"Token expires in: {response.session.expires_in} seconds")
+
         access_token = response.session.access_token
         refresh_token = response.session.refresh_token
         expires_in = response.session.expires_in
         token_type = response.session.token_type
+
         return Token(
             access_token=access_token, refresh_token=refresh_token, expires_in=expires_in, token_type=token_type
         )
     except Exception as e:
-        logger.error(f"Token refresh failed: {str(e)}")
+        logger.error(f"Token refresh failed: {str(e)}", exc_info=True)  # Log full exception traceback
+        logger.info(f"Exception type: {type(e).__name__}")
+        logger.info(f"Exception args: {e.args}")
+
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token refresh failed",
+            detail=f"Token refresh failed: {str(e)}",
             headers={"WWW-Authenticate": "Bearer"},
         )

@@ -32,7 +32,6 @@ export async function isPaidUser(): Promise<boolean> {
   if (!token) {
     return false; // No token, user is not logged in
   }
-
   const response = await fetch(`${BASE_URL}/api/auth/session`, {
     method: 'GET',
     credentials: 'include',
@@ -162,42 +161,58 @@ export async function syncStats(syncRequest: SyncStatsRequest): Promise<SyncStat
   return { success: true, message: data.message };
 }
 
+let tokenRefreshPromise: Promise<string | null> | null = null;
+
 export async function getValidAccessToken(): Promise<string | null> {
+  // If a refresh is already in progress, wait for it to complete
+  if (tokenRefreshPromise) {
+    return tokenRefreshPromise;
+  }
+
   const { token, refreshToken, tokenExpiry } = await new Promise<{
     token?: string;
     refreshToken?: string;
     tokenExpiry?: number;
   }>(resolve => chrome.storage.local.get(['token', 'refreshToken', 'tokenExpiry'], resolve));
 
-  if (token) {
-    if (tokenExpiry && Date.now() < tokenExpiry) {
-      console.log('Token is present and not expired');
-      return token;
-    } else {
-      console.warn('Token is present but expired');
-    }
+  if (token && tokenExpiry && Date.now() < tokenExpiry) {
+    console.log('Token is present and not expired');
+    return token;
   }
 
+  // Token is expired or not present, attempt to refresh
   if (refreshToken) {
+    tokenRefreshPromise = refreshAccessToken(refreshToken);
     try {
-      const { data } = await axios.post(`${BASE_URL}/api/auth/refresh`, {
-        refresh_token: refreshToken,
-      });
-      await chrome.storage.local.set({
-        token: data.access_token,
-        refreshToken: data.refresh_token,
-        tokenExpiry: Date.now() + data.expires_in * 1000,
-      });
-      console.log('Token refreshed successfully');
-      return data.access_token;
-    } catch (error: any) {
-      console.error('Token refresh error:', error.response?.data?.detail || error.message);
-      return null;
+      const newToken = await tokenRefreshPromise;
+      return newToken;
+    } finally {
+      tokenRefreshPromise = null;
     }
   } else {
     console.warn('No refreshToken found. User needs to (re-)login.');
+    return null;
   }
-  return null;
+}
+
+async function refreshAccessToken(refreshToken: string): Promise<string | null> {
+  try {
+    const { data } = await axios.post(`${BASE_URL}/api/auth/refresh`, {
+      refresh_token: refreshToken,
+    });
+    await chrome.storage.local.set({
+      token: data.access_token,
+      refreshToken: data.refresh_token,
+      tokenExpiry: Date.now() + data.expires_in * 1000,
+    });
+    console.log('Token refreshed successfully');
+    return data.access_token;
+  } catch (error: any) {
+    console.error('Token refresh error:', error.response?.data?.detail || error.message);
+    // Clear the invalid refresh token
+    await chrome.storage.local.remove(['token', 'refreshToken', 'tokenExpiry']);
+    return null;
+  }
 }
 
 export async function fetchBlockingHistory(): Promise<BlockedDetail[]> {

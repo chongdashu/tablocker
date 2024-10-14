@@ -41,19 +41,21 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Initial UI setup
   initializeUI();
 
-  // Load stored data and update UI
-  loadCachedDataAndUpdateUI();
+  // Retrieve the token once at the start
+  const initialToken = await getValidAccessToken();
 
-  // Check session and perform network-dependent operations
-  const storedToken = await getValidAccessToken();
-  if (storedToken) {
-    checkSessionAndUpdateUI(storedToken);
+  // Use the initial token for session check and UI update
+  if (initialToken) {
+    await checkSessionAndUpdateUI(initialToken);
   } else {
     handleLoggedOutState();
   }
 
-  // Load and render patterns after all other operations
-  await loadAndRenderPatterns();
+  // Load cached data and update UI
+  await loadCachedDataAndUpdateUI();
+
+  // Load and render patterns using the initial token
+  await loadAndRenderPatterns(initialToken);
 
   // Event listeners
   toggleButton.addEventListener('click', handleToggleClick);
@@ -62,7 +64,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   quickBlockButton.addEventListener('click', handleQuickBlock);
 
   // Functions
-
   function initializeUI() {
     updateToggleUI(true); // Assume blocking is active by default
     updateStatusIndicator(true);
@@ -91,9 +92,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
-  async function loadAndRenderPatterns() {
+  async function loadAndRenderPatterns(token: string | null) {
     try {
-      const token = await getValidAccessToken();
       const isPaid = token ? await isPaidUser() : false;
       updateProStatusUI(isPaid);
 
