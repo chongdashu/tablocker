@@ -10,6 +10,8 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import Mapped
 from sqlalchemy.orm import mapped_column
 
+from database.mixins import TimestampMixin
+
 Base = declarative_base()
 
 
@@ -58,7 +60,7 @@ class BlockedPatternStats(Base):
     count: Mapped[int] = mapped_column(Integer, default=0)
 
 
-class BlockingHistory(Base):
+class BlockingHistory(Base, TimestampMixin):
     __tablename__ = "blocking_history"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
