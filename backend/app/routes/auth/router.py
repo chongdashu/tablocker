@@ -298,12 +298,8 @@ async def refresh_token(request: RefreshTokenRequest) -> Token:
         Token: The new access token along with a new refresh token and expiry.
     """
     logger.info("Attempting to refresh access token")
-<<<<<<< Updated upstream
     logger.info(f"Received refresh token: {request.refresh_token[:10]}...")
 
-=======
-    logger.info(f"Received refresh token: {request.refresh_token}...")
->>>>>>> Stashed changes
     try:
         logger.info("Calling supabase_client.auth.refresh_session")
         response = supabase_client.auth.refresh_session(request.refresh_token)
