@@ -249,7 +249,7 @@ export function LandingComponent() {
         </section>
 
         {/* Testimonials Section */}
-        {
+        {/* {
           <section
             id="testimonials"
             className="container mx-auto px-4 py-20 bg-purple-50"
@@ -308,7 +308,7 @@ export function LandingComponent() {
               ))}
             </div>
           </section>
-        }
+        } */}
 
         {/* Pricing Section */}
         <section id="pricing" className="container mx-auto px-4 py-20">
