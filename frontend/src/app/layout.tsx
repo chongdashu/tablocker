@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import Head from "next/head";
+import { usePathname } from "next/navigation";
 import "./globals.css";
 import { CSPostHogProvider } from "./providers";
 
@@ -55,6 +56,8 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const pathname = usePathname();
+
   return (
     <html lang="en">
       <Head>
