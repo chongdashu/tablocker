@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
+import Head from "next/head";
 import "./globals.css";
 import { CSPostHogProvider } from "./providers";
 
@@ -56,6 +57,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <Head>
+        <link rel="canonical" href={`https://untab.xyz${pathname}`} />
+      </Head>
       <CSPostHogProvider>
         <body
           className={`${geistSans.variable} ${geistMono.variable} antialiased`}
