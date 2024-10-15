@@ -105,33 +105,60 @@ async def post_blocking_history(
     db: Session = Depends(get_db),
 ) -> list[BlockingHistoryRecord]:
     """
-    Add new blocking history entries for the current user, de-duplicating based on timestamps.
+    Merge new blocking history entries with existing ones for the current user.
+
+    This function de-duplicates entries based on timestamps, updating existing entries
+    if necessary and creating new ones if they don't exist.
+
+    Args:
+        request: The BlockingHistoryRequest containing new history entries.
+        current_user: The current authenticated user.
+        db: The database session.
+
+    Returns:
+        A list of BlockingHistoryRecord representing the updated entries.
     """
-    # Create a dictionary to store entries, using timestamp as the key
-    unique_entries: dict[datetime, BlockingHistoryRecord] = {}
+    user_id = current_user.supabase_user_id
 
-    for entry in request.blocking_history:
-        if entry.timestamp not in unique_entries or entry.timestamp > unique_entries[entry.timestamp].timestamp:
-            unique_entries[entry.timestamp] = entry
+    # Create a dictionary of new entries, using timestamp as the key
+    new_entries = {entry.timestamp: entry for entry in request.blocking_history}
 
-    # Add unique entries to the database
-    new_entries: list[BlockingHistory] = []
-    for unique_entry in unique_entries.values():
+    # Fetch existing entries for the user with matching timestamps
+    existing_entries = (
+        db.query(BlockingHistory)
+        .filter(BlockingHistory.supabase_user_id == user_id)
+        .filter(BlockingHistory.timestamp.in_(new_entries.keys()))
+        .all()
+    )
+
+    updated_entries: list[BlockingHistory] = []
+
+    for entry in existing_entries:
+        new_entry = new_entries.pop(entry.timestamp)
+        if new_entry.url != entry.url or new_entry.pattern != entry.pattern:
+            entry.url = new_entry.url
+            entry.pattern = new_entry.pattern
+            updated_entries.append(entry)
+
+    # Add remaining new entries
+    for timestamp, entry in new_entries.items():
         new_entry = BlockingHistory(
-            supabase_user_id=current_user.supabase_user_id,
-            url=unique_entry.url,
-            pattern=unique_entry.pattern,
-            timestamp=unique_entry.timestamp,
+            supabase_user_id=user_id,
+            url=entry.url,
+            pattern=entry.pattern,
+            timestamp=timestamp,
         )
         db.add(new_entry)
-        new_entries.append(new_entry)
+        updated_entries.append(new_entry)
 
-    db.commit()
-    for entry in new_entries:
-        db.refresh(entry)
+    if updated_entries:
+        db.commit()
+        for entry in updated_entries:
+            db.refresh(entry)
 
     return [
-        BlockingHistoryRecord(url=entry.url, pattern=entry.pattern, timestamp=entry.timestamp) for entry in new_entries
+        BlockingHistoryRecord(url=entry.url, pattern=entry.pattern, timestamp=entry.timestamp)
+        for entry in updated_entries
     ]
 
 
