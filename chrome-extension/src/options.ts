@@ -1,14 +1,6 @@
 import { Chart, ChartConfiguration } from 'chart.js/auto';
-import {
-  BlockedDetail,
-  BlockedPattern,
-  BlockedPatternStat,
-  DailyStat,
-  DailyStats,
-  SyncStatsRequest,
-  TabStats,
-} from './types';
-import { fetchBlockingHistory, isPaidUser, postBlockingHistory, syncStats } from './utils';
+import { BlockedDetail, BlockedPattern, DailyStats, TabStats } from './types';
+import { isPaidUser, syncStatsWithServer } from './utils';
 
 const blockedCountElement = document.getElementById('blockedCount') as HTMLSpanElement;
 const enableBadgesCheckbox = document.getElementById('enableBadges') as HTMLInputElement;
@@ -213,33 +205,6 @@ async function updateBlockedDetails(blockedDetails: BlockedDetail[]) {
   console.log('Blocked details updated in DOM');
 }
 
-// Add this new function to sync blocked details with the server
-async function syncBlockedDetails() {
-  try {
-    // Get local blocked details
-    const { blockedDetails } = (await chrome.storage.local.get('blockedDetails')) as {
-      blockedDetails: BlockedDetail[];
-    };
-
-    // Post local blocked details to the server
-    const updatedDetails = await postBlockingHistory(blockedDetails);
-
-    // Fetch the updated list from the server
-    const serverBlockedDetails = await fetchBlockingHistory();
-
-    // Update local storage with the server data
-    await chrome.storage.local.set({ blockedDetails: serverBlockedDetails });
-
-    // Update the UI
-    updateBlockedDetails(serverBlockedDetails);
-
-    console.log('Blocked details synced successfully');
-  } catch (error) {
-    console.error('Error syncing blocked details:', error);
-    setStatus('Failed to sync blocked details', 'error');
-  }
-}
-
 function listenForStorageChanges() {
   chrome.storage.onChanged.addListener((changes, namespace) => {
     if (
@@ -279,45 +244,11 @@ async function handleSyncStats() {
     syncText.classList.add('hidden');
     spinner.classList.remove('hidden');
 
-    const { tabStats, dailyStats, blockedPatterns } = (await chrome.storage.local.get([
-      'tabStats',
-      'dailyStats',
-      'blockedPatterns',
-    ])) as {
-      tabStats: TabStats;
-      dailyStats: { [date: string]: DailyStats };
-      blockedPatterns: BlockedPattern;
-    };
+    await syncStatsWithServer();
 
-    const syncRequest: SyncStatsRequest = {
-      user_stats: {
-        total_tabs_blocked: tabStats?.blocked || 0,
-        last_updated: new Date().toISOString(),
-      },
-      daily_stats: Object.entries(dailyStats || {}).map(
-        ([date, stats]): DailyStat => ({
-          date,
-          tabs_blocked: stats.blocked,
-        })
-      ),
-      blocked_pattern_stats: Object.entries(blockedPatterns || {}).map(
-        ([pattern, stats]): BlockedPatternStat => ({
-          pattern,
-          count: stats.count,
-        })
-      ),
-    };
-
-    const uploadResponse = await syncStats(syncRequest);
-    if (uploadResponse.success) {
-      // Sync blocked details after syncing stats
-      await syncBlockedDetails();
-      setStatus('Stats and blocked details synced successfully', 'success');
-      updateLastSyncTime();
-      updateStats(); // Refresh the UI with the new data
-    } else {
-      throw new Error('Sync was not successful');
-    }
+    setStatus('Stats synced successfully', 'success');
+    updateLastSyncTime();
+    updateStats(); // Refresh the UI with the new data
   } catch (error) {
     console.error('Error syncing stats:', error);
     setStatus('Failed to sync stats', 'error');

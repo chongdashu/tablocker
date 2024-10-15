@@ -48,15 +48,27 @@ export interface BlockedPatternStat {
   count: number;
 }
 
-export interface SyncStatsRequest {
-  user_stats: UserStats;
-  daily_stats: DailyStat[];
-  blocked_pattern_stats: BlockedPatternStat[];
+export namespace GetStatsResponse {
+  export interface DailyStat {
+    date: string;
+    tabs_blocked: number;
+  }
+
+  export interface BlockedPatternStat {
+    pattern: string;
+    count: number;
+  }
+
+  export interface UserStats {
+    total_tabs_blocked: number;
+    last_updated: string;
+  }
 }
 
-export interface SyncStatsResponse {
-  success: boolean;
-  message: string;
+export interface GetStatsResponse {
+  daily_stats: GetStatsResponse.DailyStat[];
+  blocked_pattern_stats: GetStatsResponse.BlockedPatternStat[];
+  user_stats: GetStatsResponse.UserStats;
 }
 
 export interface BlockingHistoryRequest {

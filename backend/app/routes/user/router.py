@@ -3,24 +3,20 @@ from datetime import datetime
 
 from fastapi import APIRouter
 from fastapi import Depends
-from fastapi import HTTPException
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from database.manager import get_db
 from database.models import BlockedPattern
-from database.models import BlockedPatternStats
 from database.models import BlockingHistory
-from database.models import DailyStats
-from database.models import UserStats
 from routes.auth.api import UserResponse
 from routes.auth.router import get_current_user
 from routes.user.api import BlockedPattern as BlockedPatternSchema
 from routes.user.api import BlockingHistoryRecord
 from routes.user.api import BlockingHistoryRequest
+from routes.user.api import GetStatsResponse
 from routes.user.api import SyncBlockedPatternsRequest
 from routes.user.api import SyncBlockedPatternsResponse
-from routes.user.api import SyncStatsRequest
-from routes.user.api import SyncStatsResponse
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -93,72 +89,6 @@ async def sync_blocklist(
     return SyncBlockedPatternsResponse(success=True, blocked_patterns=response_patterns)
 
 
-@router.post("/stats/sync", response_model=SyncStatsResponse)
-async def sync_stats(
-    request: SyncStatsRequest,
-    current_user: UserResponse = Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
-    logger.info(f"Syncing stats for user {current_user.supabase_user_id}")
-
-    # Update or create UserStats
-    user_stats = db.query(UserStats).filter(UserStats.supabase_user_id == current_user.supabase_user_id).first()
-    if user_stats:
-        user_stats.total_tabs_blocked = request.user_stats.total_tabs_blocked
-        user_stats.last_updated = datetime.fromisoformat(request.user_stats.last_updated)
-    else:
-        user_stats = UserStats(
-            supabase_user_id=current_user.supabase_user_id,
-            total_tabs_blocked=request.user_stats.total_tabs_blocked,
-            last_updated=datetime.fromisoformat(request.user_stats.last_updated),
-        )
-        db.add(user_stats)
-
-    # Update or create DailyStats
-    for daily_stat in request.daily_stats:
-        db_daily_stat = (
-            db.query(DailyStats)
-            .filter(DailyStats.supabase_user_id == current_user.supabase_user_id, DailyStats.date == daily_stat.date)
-            .first()
-        )
-        if db_daily_stat:
-            db_daily_stat.tabs_blocked = daily_stat.tabs_blocked
-        else:
-            db_daily_stat = DailyStats(
-                supabase_user_id=current_user.supabase_user_id,
-                date=daily_stat.date,
-                tabs_blocked=daily_stat.tabs_blocked,
-            )
-            db.add(db_daily_stat)
-
-    # Update or create BlockedPatternStats
-    for pattern_stat in request.blocked_pattern_stats:
-        db_pattern_stat = (
-            db.query(BlockedPatternStats)
-            .filter(
-                BlockedPatternStats.supabase_user_id == current_user.supabase_user_id,
-                BlockedPatternStats.pattern == pattern_stat.pattern,
-            )
-            .first()
-        )
-        if db_pattern_stat:
-            db_pattern_stat.count = pattern_stat.count
-        else:
-            db_pattern_stat = BlockedPatternStats(
-                supabase_user_id=current_user.supabase_user_id, pattern=pattern_stat.pattern, count=pattern_stat.count
-            )
-            db.add(db_pattern_stat)
-
-    try:
-        db.commit()
-        logger.info(f"Successfully synced stats for user {current_user.supabase_user_id}")
-        return SyncStatsResponse(success=True, message="Stats synced successfully")
-    except Exception as e:
-        db.rollback()
-        logger.error(f"Error syncing stats for user {current_user.supabase_user_id}: {str(e)}")
-        raise HTTPException(status_code=500, detail="Error syncing stats")
-
-
 @router.get("/blocking_history", response_model=list[BlockingHistoryRecord])
 async def get_blocking_history(current_user: UserResponse = Depends(get_current_user), db: Session = Depends(get_db)):
     """
@@ -175,31 +105,106 @@ async def post_blocking_history(
     db: Session = Depends(get_db),
 ) -> list[BlockingHistoryRecord]:
     """
-    Add new blocking history entries for the current user, de-duplicating based on timestamps.
+    Merge new blocking history entries with existing ones for the current user.
+
+    This function de-duplicates entries based on timestamps, updating existing entries
+    if necessary and creating new ones if they don't exist.
+
+    Args:
+        request: The BlockingHistoryRequest containing new history entries.
+        current_user: The current authenticated user.
+        db: The database session.
+
+    Returns:
+        A list of BlockingHistoryRecord representing the updated entries.
     """
-    # Create a dictionary to store entries, using timestamp as the key
-    unique_entries: dict[datetime, BlockingHistoryRecord] = {}
+    user_id = current_user.supabase_user_id
 
-    for entry in request.blocking_history:
-        if entry.timestamp not in unique_entries or entry.timestamp > unique_entries[entry.timestamp].timestamp:
-            unique_entries[entry.timestamp] = entry
+    # Create a dictionary of new entries, using timestamp as the key
+    new_entries = {entry.timestamp: entry for entry in request.blocking_history}
 
-    # Add unique entries to the database
-    new_entries: list[BlockingHistory] = []
-    for unique_entry in unique_entries.values():
+    # Fetch existing entries for the user with matching timestamps
+    existing_entries = (
+        db.query(BlockingHistory)
+        .filter(BlockingHistory.supabase_user_id == user_id)
+        .filter(BlockingHistory.timestamp.in_(new_entries.keys()))
+        .all()
+    )
+
+    updated_entries: list[BlockingHistory] = []
+
+    for entry in existing_entries:
+        new_entry = new_entries.pop(entry.timestamp)
+        if new_entry.url != entry.url or new_entry.pattern != entry.pattern:
+            entry.url = new_entry.url
+            entry.pattern = new_entry.pattern
+            updated_entries.append(entry)
+
+    # Add remaining new entries
+    for timestamp, entry in new_entries.items():
         new_entry = BlockingHistory(
-            supabase_user_id=current_user.supabase_user_id,
-            url=unique_entry.url,
-            pattern=unique_entry.pattern,
-            timestamp=unique_entry.timestamp,
+            supabase_user_id=user_id,
+            url=entry.url,
+            pattern=entry.pattern,
+            timestamp=timestamp,
         )
         db.add(new_entry)
-        new_entries.append(new_entry)
+        updated_entries.append(new_entry)
 
-    db.commit()
-    for entry in new_entries:
-        db.refresh(entry)
+    if updated_entries:
+        db.commit()
+        for entry in updated_entries:
+            db.refresh(entry)
 
     return [
-        BlockingHistoryRecord(url=entry.url, pattern=entry.pattern, timestamp=entry.timestamp) for entry in new_entries
+        BlockingHistoryRecord(url=entry.url, pattern=entry.pattern, timestamp=entry.timestamp)
+        for entry in updated_entries
     ]
+
+
+@router.get("/stats", response_model=GetStatsResponse)
+async def get_stats(
+    current_user: UserResponse = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Retrieve user statistics derived from BlockingHistory.
+    """
+    user_id = current_user.supabase_user_id
+
+    # Calculate UserStats
+    total_tabs_blocked = (
+        db.query(func.count(BlockingHistory.id)).filter(BlockingHistory.supabase_user_id == user_id).scalar()
+    )
+
+    last_updated = (
+        db.query(func.max(BlockingHistory.timestamp)).filter(BlockingHistory.supabase_user_id == user_id).scalar()
+    )
+
+    # Calculate DailyStats
+    daily_stats = (
+        db.query(
+            func.date(BlockingHistory.timestamp).label("date"), func.count(BlockingHistory.id).label("tabs_blocked")
+        )
+        .filter(BlockingHistory.supabase_user_id == user_id)
+        .group_by(func.date(BlockingHistory.timestamp))
+        .all()
+    )
+
+    # Calculate BlockedPatternStats
+    pattern_stats = (
+        db.query(BlockingHistory.pattern, func.count(BlockingHistory.id).label("total_count"))
+        .filter(BlockingHistory.supabase_user_id == user_id)
+        .group_by(BlockingHistory.pattern)
+        .all()
+    )
+
+    return GetStatsResponse(
+        user_stats=GetStatsResponse.UserStats(total_tabs_blocked=total_tabs_blocked, last_updated=last_updated),
+        daily_stats=[
+            GetStatsResponse.DailyStats(date=stat.date, tabs_blocked=stat.tabs_blocked) for stat in daily_stats
+        ],
+        blocked_pattern_stats=[
+            GetStatsResponse.BlockedPatternStats(pattern=stat.pattern, count=stat.total_count) for stat in pattern_stats
+        ],
+    )
