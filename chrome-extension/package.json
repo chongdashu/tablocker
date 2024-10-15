@@ -1,8 +1,7 @@
 {
   "scripts": {
     "build": "webpack --mode production",
-    "watch": "webpack --mode development --watch",
-    "postbuild": "next-sitemap"
+    "watch": "webpack --mode development --watch"
   },
   "name": "un-tab",
   "version": "1.0.0",
