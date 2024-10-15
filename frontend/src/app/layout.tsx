@@ -1,7 +1,5 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
-import Head from "next/head";
-import { usePathname } from "next/navigation";
 import "./globals.css";
 import { CSPostHogProvider } from "./providers";
 
@@ -49,6 +47,9 @@ export const metadata: Metadata = {
     nocache: false,
     noimageindex: false,
   },
+  alternates: {
+    canonical: "https://untab.xyz",
+  },
 };
 
 export default function RootLayout({
@@ -56,13 +57,8 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const pathname = usePathname();
-
   return (
     <html lang="en">
-      <Head>
-        <link rel="canonical" href={`https://untab.xyz${pathname}`} />
-      </Head>
       <CSPostHogProvider>
         <body
           className={`${geistSans.variable} ${geistMono.variable} antialiased`}
