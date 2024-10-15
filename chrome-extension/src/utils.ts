@@ -21,9 +21,8 @@ import {
   BlockedDetail,
   BlockedSite,
   BlockingHistoryRequest,
+  GetStatsResponse,
   SyncBlockedPatternsResponse,
-  SyncStatsRequest,
-  SyncStatsResponse,
 } from './types';
 
 export async function isPaidUser(): Promise<boolean> {
@@ -134,31 +133,24 @@ export function mergePatterns(
   return mergedPatterns;
 }
 
-export async function syncStats(syncRequest: SyncStatsRequest): Promise<SyncStatsResponse> {
+export async function getStats(): Promise<GetStatsResponse> {
   const token = await getValidAccessToken();
   if (!token) {
-    console.warn('No access token could be obtained. User needs to (re-)login');
-    return {
-      success: false,
-      message: 'No access token could be obtained. User needs to (re-)login',
-    };
+    throw new Error('No access token could be obtained. User needs to (re-)login');
   }
 
-  const response = await fetch(`${BASE_URL}/api/user/stats/sync`, {
-    method: 'POST',
+  const response = await fetch(`${BASE_URL}/api/user/stats`, {
+    method: 'GET',
     headers: {
-      'Content-Type': 'application/json',
       Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify(syncRequest),
   });
 
   if (!response.ok) {
     throw new Error(`HTTP error! status: ${response.status}`);
   }
 
-  const data = await response.json();
-  return { success: true, message: data.message };
+  return await response.json();
 }
 
 let tokenRefreshPromise: Promise<string | null> | null = null;
@@ -261,4 +253,52 @@ export async function postBlockingHistory(entries: BlockedDetail[]): Promise<Blo
   }
 
   return await response.json();
+}
+
+async function syncBlockedDetails() {
+  try {
+    // Get local blocked details
+    const { blockedDetails } = (await chrome.storage.local.get('blockedDetails')) as {
+      blockedDetails: BlockedDetail[];
+    };
+
+    // Post local blocked details to the server
+    const updatedDetails = await postBlockingHistory(blockedDetails);
+
+    // Fetch the updated list from the server
+    const serverBlockedDetails = await fetchBlockingHistory();
+
+    // Update local storage with the server data
+    await chrome.storage.local.set({ blockedDetails: serverBlockedDetails });
+
+    console.log('Blocked details synced successfully');
+  } catch (error) {
+    console.error('Error syncing blocked details:', error);
+  }
+}
+
+/**
+ * Synchronizes stats with the server and updates local storage.
+ * @returns {Promise<void>}
+ */
+export async function syncStatsWithServer(): Promise<void> {
+  await syncBlockedDetails();
+  const stats = await getStats();
+
+  // Update local storage with the received stats
+  await chrome.storage.local.set({
+    tabStats: { blocked: stats.user_stats.total_tabs_blocked },
+    dailyStats: stats.daily_stats.reduce<Record<string, { blocked: number }>>((acc, stat) => {
+      acc[stat.date] = { blocked: stat.tabs_blocked };
+      return acc;
+    }, {}),
+    blockedPatterns: stats.blocked_pattern_stats.reduce(
+      (acc: Record<string, { count: number; lastBlocked: string }>, stat) => {
+        acc[stat.pattern] = { count: stat.count, lastBlocked: '' };
+        return acc;
+      },
+      {}
+    ),
+    lastSyncTime: new Date().toISOString(),
+  });
 }

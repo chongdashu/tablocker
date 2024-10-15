@@ -1,5 +1,5 @@
 import type { BlockedDetail, BlockedPattern, BlockedSite, DailyStats, TabStats } from './types';
-import { matchesWildcard, syncStats } from './utils';
+import { matchesWildcard, syncStatsWithServer } from './utils';
 
 (async function () {
   // Wait for the Chrome APIs to be available
@@ -232,35 +232,8 @@ import { matchesWildcard, syncStats } from './utils';
   async function performSync() {
     console.log('Performing sync');
     try {
-      const { tabStats, dailyStats, blockedPatterns } = await chrome.storage.local.get([
-        'tabStats',
-        'dailyStats',
-        'blockedPatterns',
-      ]);
-
-      const syncRequest = {
-        user_stats: {
-          total_tabs_blocked: tabStats?.blocked || 0,
-          last_updated: new Date().toISOString(),
-        },
-        daily_stats: Object.entries(dailyStats || {}).map(([date, stats]) => ({
-          date,
-          tabs_blocked: (stats as DailyStats).blocked,
-        })),
-        blocked_pattern_stats: Object.entries(blockedPatterns || {}).map(([pattern, stats]) => ({
-          pattern,
-          count: (stats as BlockedPattern[string]).count,
-        })),
-      };
-
-      const response = await syncStats(syncRequest);
-      if (response.success) {
-        console.log('Sync successful:', response.message);
-        // Update last sync time
-        chrome.storage.local.set({ lastSyncTime: new Date().toISOString() });
-      } else {
-        console.error('Sync failed:', response.message);
-      }
+      await syncStatsWithServer();
+      console.log('Sync successful');
     } catch (error) {
       console.error('Error during sync:', error);
     }
