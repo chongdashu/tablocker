@@ -166,7 +166,7 @@ async def get_stats(
 
     # Calculate BlockedPatternStats
     pattern_stats = (
-        db.query(BlockingHistory.pattern, func.count(BlockingHistory.id).label("count"))
+        db.query(BlockingHistory.pattern, func.count(BlockingHistory.id).label("total_count"))
         .filter(BlockingHistory.supabase_user_id == user_id)
         .group_by(BlockingHistory.pattern)
         .all()
@@ -178,6 +178,6 @@ async def get_stats(
             GetStatsResponse.DailyStats(date=stat.date, tabs_blocked=stat.tabs_blocked) for stat in daily_stats
         ],
         blocked_pattern_stats=[
-            GetStatsResponse.BlockedPatternStats(pattern=stat.pattern, count=stat.count) for stat in pattern_stats
+            GetStatsResponse.BlockedPatternStats(pattern=stat.pattern, count=stat.total_count) for stat in pattern_stats
         ],
     )
