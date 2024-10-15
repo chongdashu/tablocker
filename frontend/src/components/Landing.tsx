@@ -35,8 +35,8 @@ export function LandingComponent() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-purple-50 to-white text-gray-800">
       <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-sm shadow-sm">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <div className="flex items-center space-x-2">
+        <div className="container mx-auto px-4 py-4 flex flex-wrap justify-between items-center">
+          <div className="flex items-center space-x-2 mr-4 w-full justify-center md:w-auto md:justify-start">
             <Image
               src="/images/icon128.png"
               alt="UnTab.xyz Logo"
@@ -48,12 +48,12 @@ export function LandingComponent() {
 
           {/* New "Add to Chrome" button */}
           <Button
-            size="lg"
-            className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold py-2 px-6 rounded-full shadow-lg transform transition-all duration-300 ease-in-out hover:scale-105"
+            size="sm"
+            className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold py-2 px-4 rounded-full shadow-lg transform transition-all duration-300 ease-in-out hover:scale-105 order-3 md:order-2 w-full md:w-auto mt-4 md:mt-0"
             onClick={() => window.open(CHROME_STORE_LINK, "_blank")}
           >
             <svg
-              className="mr-2 h-5 w-5 text-white"
+              className="mr-2 h-4 w-4 text-white inline-block"
               role="img"
               viewBox="0 0 24 24"
               xmlns="http://www.w3.org/2000/svg"
@@ -64,17 +64,12 @@ export function LandingComponent() {
                 d="M12 0C8.21 0 4.831 1.757 2.632 4.501l3.953 6.848A5.454 5.454 0 0 1 12 6.545h10.691A12 12 0 0 0 12 0zM1.931 5.47A11.943 11.943 0 0 0 0 12c0 6.012 4.42 10.991 10.189 11.864l3.953-6.847a5.45 5.45 0 0 1-6.865-2.29zm13.342 2.166a5.446 5.446 0 0 1 1.45 7.09l.002.001h-.002l-5.344 9.257c.206.01.413.016.621.016 6.627 0 12-5.373 12-12 0-1.54-.29-3.011-.818-4.364zM12 16.364a4.364 4.364 0 1 1 0-8.728 4.364 4.364 0 0 1 0 8.728Z"
               />
             </svg>
-            Add Un-Tab to Chrome
-            <Zap className="ml-2 h-5 w-5" />
+            <span className="hidden sm:inline">Add Un-Tab to Chrome</span>
+            <span className="sm:hidden">Add to Chrome</span>
+            <Zap className="ml-2 h-4 w-4 inline-block" />
           </Button>
 
-          <nav className="hidden md:flex items-center space-x-6">
-            {/* <button
-              onClick={() => scrollTo("why-untab")}
-              className="text-gray-600 hover:text-purple-600"
-            >
-              Why Un-Tab
-            </button> */}
+          <nav className="hidden md:flex items-center space-x-6 order-2 md:order-3">
             <button
               onClick={() => scrollTo("how-it-works")}
               className="text-gray-600 hover:text-purple-600"
