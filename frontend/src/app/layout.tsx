@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
+import Script from "next/script";
 import "./globals.css";
 import { CSPostHogProvider } from "./providers";
 
@@ -15,40 +16,55 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Un-Tab: Keep Focus & Stop Distractions",
+  title: "Un-Tab: Focus Booster & Distraction Blocker for Chrome",
   description:
-    "Un-Tab is a powerful tab blocker that helps you stay focused and productive by blocking distracting websites. Enhance your workflow and maintain concentration effortlessly.", // Updated description
+    "Un-Tab is a powerful Chrome extension that blocks distracting websites, boosts productivity, and helps you maintain focus. Ideal for students, professionals, and anyone looking to improve their digital habits.",
+  keywords:
+    "productivity, focus, distraction blocker, website blocker, Chrome extension, time management, digital wellbeing",
   openGraph: {
-    title: "Un-Tab: Keep Focus & Stop Distractions",
+    title: "Un-Tab: Focus Booster & Distraction Blocker for Chrome",
     description:
-      "Stay productive and eliminate distractions with Un-Tab, your reliable tab blocker for a focused work environment.",
+      "Boost productivity and eliminate distractions with Un-Tab, your reliable Chrome extension for a focused work environment.",
     url: "https://untab.xyz",
     type: "website",
     images: [
       {
-        url: "https://untab.xyz/og-image",
+        url: "https://untab.xyz/og-image.png",
         width: 1200,
         height: 630,
-        alt: "Un-Tab Application Screenshot",
+        alt: "Un-Tab Chrome Extension Screenshot",
       },
     ],
+    siteName: "Un-Tab",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Un-Tab: Keep Focus & Stop Distractions",
+    title: "Un-Tab: Focus Booster & Distraction Blocker for Chrome",
     description:
-      "Boost your productivity by blocking distracting websites with Un-Tab. Stay focused and achieve your goals efficiently.",
-    images: ["https://untab.xyz/og-image"],
+      "Maximize productivity by blocking distracting websites with Un-Tab. Stay focused and achieve your goals efficiently.",
+    images: ["https://untab.xyz/og-image.png"], // maybe change this to twitter card next time
     creator: "@chongdashu",
   },
   robots: {
     index: true,
     follow: true,
-    nocache: false,
-    noimageindex: false,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
   },
   alternates: {
     canonical: "https://untab.xyz",
+  },
+  icons: [
+    { rel: "icon", url: "/favicon.ico" },
+    { rel: "apple-touch-icon", url: "/apple-touch-icon.png" },
+  ],
+  verification: {
+    google: "YOUR_GOOGLE_SITE_VERIFICATION_CODE",
   },
 };
 
@@ -59,6 +75,42 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <Script
+          id="structured-data"
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "SoftwareApplication",
+              name: "Un-Tab",
+              applicationCategory: "BrowserApplication",
+              operatingSystem: "Chrome",
+              offers: [
+                {
+                  "@type": "Offer",
+                  price: "0",
+                  priceCurrency: "USD",
+                  description: "Standard version",
+                },
+                {
+                  "@type": "Offer",
+                  price: "7.99",
+                  priceCurrency: "USD",
+                  description: "Pro version (50% off)",
+                },
+              ],
+              description:
+                "Un-Tab is a Chrome extension that helps users block distracting websites and boost productivity.",
+              aggregateRating: {
+                "@type": "AggregateRating",
+                ratingValue: "4.8",
+                ratingCount: "100",
+              },
+            }),
+          }}
+        />
+      </head>
       <CSPostHogProvider>
         <body
           className={`${geistSans.variable} ${geistMono.variable} antialiased`}
