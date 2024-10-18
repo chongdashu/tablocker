@@ -30,7 +30,7 @@ export const metadata: Metadata = {
     type: "website",
     images: [
       {
-        url: "https://untab.xyz/og-image.png",
+        url: "https://untab.xyz/og-image",
         width: 1200,
         height: 630,
         alt: "Un-Tab Chrome Extension Screenshot",
@@ -43,7 +43,7 @@ export const metadata: Metadata = {
     title: "Un-Tab: Focus Booster & Distraction Blocker for Chrome",
     description:
       "Maximize productivity by blocking distracting websites with Un-Tab. Stay focused and achieve your goals efficiently.",
-    images: ["https://untab.xyz/og-image.png"], // maybe change this to twitter card next time
+    images: ["https://untab.xyz/og-image"], // maybe change this to twitter card next time
     creator: "@chongdashu",
   },
   robots: {
