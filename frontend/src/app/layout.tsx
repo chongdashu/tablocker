@@ -1,3 +1,4 @@
+import { Footer } from "@/components/Footer";
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import Script from "next/script";
@@ -113,6 +114,7 @@ export default function RootLayout({
           className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         >
           {children}
+          <Footer />
         </body>
       </CSPostHogProvider>
     </html>

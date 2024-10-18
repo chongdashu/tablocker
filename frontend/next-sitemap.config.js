@@ -15,8 +15,15 @@ module.exports = {
     additionalSitemaps: ["https://untab.xyz/sitemap.xml"],
   },
   generateIndexSitemap: false, // Generate a single sitemap file
-  // Optionally, customize priority and change frequency
   transform: async (config, path) => {
+    // Only include canonical URLs in the sitemap
+    const canonicalUrl = `${config.siteUrl}${path}`;
+    const isCanonical = await isCanonicalPage(canonicalUrl);
+
+    if (!isCanonical) {
+      return null; // Exclude non-canonical URLs from the sitemap
+    }
+
     // Custom transformation for specific pages
     if (path === "/") {
       return {
@@ -35,3 +42,12 @@ module.exports = {
     };
   },
 };
+
+// Helper function to check if a URL is canonical
+async function isCanonicalPage(url) {
+  // Implement logic to check if the URL is canonical
+  // This could involve checking the page's canonical tag or other criteria
+  // Return true if the URL is canonical, false otherwise
+  // For now, we'll assume all URLs are canonical except for specific cases
+  return !url.includes("/register");
+}

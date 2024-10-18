@@ -17,6 +17,7 @@ import {
   Zap,
 } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 import { ExtensionMockup } from "./ExtensionMockup";
 
 const CHROME_STORE_LINK =
@@ -36,7 +37,10 @@ export function LandingComponent() {
     <div className="min-h-screen bg-gradient-to-b from-purple-50 to-white text-gray-800">
       <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-sm shadow-sm">
         <div className="container mx-auto px-4 py-4 flex flex-wrap justify-between items-center">
-          <div className="flex items-center space-x-2 mr-4 w-full justify-center md:w-auto md:justify-start">
+          <Link
+            href="/"
+            className="flex items-center space-x-2 mr-4 w-full justify-center md:w-auto md:justify-start"
+          >
             <Image
               src="/images/icon128.png"
               alt="UnTab.xyz Logo"
@@ -44,7 +48,7 @@ export function LandingComponent() {
               height={32}
             />
             <span className="text-xl font-bold">UnTab.xyz</span>
-          </div>
+          </Link>
 
           {/* New "Add to Chrome" button */}
           <Button
@@ -76,12 +80,6 @@ export function LandingComponent() {
             >
               How It Works
             </button>
-            {/* <button
-              onClick={() => scrollTo("testimonials")}
-              className="text-gray-600 hover:text-purple-600"
-            >
-              Testimonials
-            </button> */}
             <button
               onClick={() => scrollTo("pricing")}
               className="text-gray-600 hover:text-purple-600"
