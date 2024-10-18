@@ -19,7 +19,7 @@ const geistMono = localFont({
 export const metadata: Metadata = {
   title: "Un-Tab: Focus Booster & Distraction Blocker for Chrome",
   description:
-    "Un-Tab is a powerful Chrome extension that blocks distracting websites, boosts productivity, and helps you maintain focus. Ideal for students, professionals, and anyone looking to improve their digital habits.",
+    "Un-Tab is a powerful Chrome extension that blocks distracting web sites, boosts productivity, and helps you maintain focus. Ideal for students and professionals.",
   keywords:
     "productivity, focus, distraction blocker, website blocker, Chrome extension, time management, digital wellbeing",
   openGraph: {
